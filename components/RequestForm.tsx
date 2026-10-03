@@ -74,17 +74,6 @@ export function RequestForm() {
       }}
     >
       <div className="space-y-4">
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm("¿Quitar todas las piezas de tu lista?")) clear();
-            }}
-            className="border border-black/20 px-4 py-2 text-sm hover:border-arquiluz-accent hover:text-arquiluz-accent"
-          >
-            Limpiar lista
-          </button>
-        </div>
         {items.map((item) => (
           <div key={item.productId} className="flex gap-4 border border-black/10 p-4">
             <div className="h-24 w-24 shrink-0 bg-arquiluz-gray">
