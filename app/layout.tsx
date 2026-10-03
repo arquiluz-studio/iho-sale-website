@@ -18,7 +18,7 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: "IHO Sale",
+  title: "IHO Outlet",
   description: "Mobiliario y accesorios de decoración en remate. Elige las piezas y te contactamos.",
 };
 

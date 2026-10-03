@@ -5,6 +5,7 @@ export type CatalogProduct = {
   id: string;
   brand: string;
   model: string;
+  sku: string | null;
   description: string;
   category: ProductCategory;
   msrp: number;
@@ -44,6 +45,7 @@ export type SelectionDraft = {
   productId: string;
   brand: string;
   model: string;
+  msrp: number;
   salePrice: number;
   stock: number;
   imageUrl: string | null;

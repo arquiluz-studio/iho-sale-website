@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { submitInquiry } from "@/app/(sale)/solicitud/actions";
+import { SalePrice } from "@/components/SalePrice";
 import { useSelection } from "@/components/SelectionProvider";
-import { formatMXN } from "@/lib/format";
+import { formatUSD, properCase } from "@/lib/format";
 
 export function RequestForm() {
   const { items, ready, setQuantity, remove, clear } = useSelection();
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<{ emailed: boolean; message?: string } | null>(null);
   const [pending, setPending] = useState(false);
 
   if (!ready) {
@@ -21,10 +22,12 @@ export function RequestForm() {
       <div className="border border-black/10 bg-arquiluz-gray p-8">
         <h2 className="font-serif text-3xl">Recibimos tu solicitud</h2>
         <p className="mt-3 max-w-xl text-gray-700">
-          Alguien de IHO te contacta para confirmar disponibilidad y entrega. No hay pago en esta página.
+          {done.emailed
+            ? "Alguien de IHO te contacta para confirmar disponibilidad y entrega. Te enviamos una copia a tu correo. No hay pago en esta página."
+            : done.message}
         </p>
         <Link href="/" className="mt-6 inline-block text-sm font-medium text-arquiluz-accent">
-          Volver al sale
+          Volver al outlet
         </Link>
       </div>
     );
@@ -35,13 +38,18 @@ export function RequestForm() {
       <div className="border border-black/10 p-8">
         <p className="text-gray-700">Todavía no elegiste piezas.</p>
         <Link href="/" className="mt-4 inline-block text-sm font-medium text-arquiluz-accent">
-          Ver lo que hay en sale
+          Ver lo que hay en outlet
         </Link>
       </div>
     );
   }
 
-  const total = items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const listTotal = items.reduce((sum, item) => {
+    const listPrice = item.msrp > item.salePrice ? item.msrp : item.salePrice;
+    return sum + listPrice * item.quantity;
+  }, 0);
+  const payTotal = items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const discountTotal = listTotal - payTotal;
 
   return (
     <form
@@ -62,10 +70,21 @@ export function RequestForm() {
           return;
         }
         clear();
-        setDone(true);
+        setDone({ emailed: result.emailed, message: result.message });
       }}
     >
       <div className="space-y-4">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("¿Quitar todas las piezas de tu lista?")) clear();
+            }}
+            className="border border-black/20 px-4 py-2 text-sm hover:border-arquiluz-accent hover:text-arquiluz-accent"
+          >
+            Limpiar lista
+          </button>
+        </div>
         {items.map((item) => (
           <div key={item.productId} className="flex gap-4 border border-black/10 p-4">
             <div className="h-24 w-24 shrink-0 bg-arquiluz-gray">
@@ -75,9 +94,11 @@ export function RequestForm() {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs uppercase tracking-wider text-gray-500">{item.brand}</p>
+              <p className="text-xs tracking-wider text-gray-500">{properCase(item.brand)}</p>
               <p className="font-serif text-xl">{item.model}</p>
-              <p className="mt-1 text-sm">{formatMXN(item.salePrice)}</p>
+              <div className="mt-1">
+                <SalePrice msrp={item.msrp} salePrice={item.salePrice} prominent={false} align="left" />
+              </div>
               <div className="mt-3 flex items-center gap-3">
                 <label className="text-xs uppercase tracking-wider text-gray-500">
                   Cantidad
@@ -97,7 +118,20 @@ export function RequestForm() {
             </div>
           </div>
         ))}
-        <p className="text-right font-serif text-2xl">{formatMXN(total)}</p>
+        <dl className="space-y-2 border-t border-black/10 pt-4 text-sm">
+          <div className="flex items-baseline justify-between gap-6">
+            <dt className="text-gray-500">Precio de lista</dt>
+            <dd>{formatUSD(listTotal)}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-6">
+            <dt className="text-gray-500">Descuento</dt>
+            <dd className="text-arquiluz-accent">-{formatUSD(discountTotal)}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-6 font-serif text-2xl text-arquiluz-black">
+            <dt>A pagar</dt>
+            <dd>{formatUSD(payTotal)}</dd>
+          </div>
+        </dl>
       </div>
 
       <div className="space-y-4 border border-black/10 p-6">

@@ -1,5 +1,7 @@
 "use server";
 
+import { sendInquiryEmails } from "@/lib/inquiry-email";
+import { toNumber } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 type InquiryPayload = {
@@ -40,5 +42,47 @@ export async function submitInquiry(formData: FormData) {
     return { ok: false as const, message: error.message };
   }
 
-  return { ok: true as const, id: data as string };
+  const { data: products, error: productsError } = await supabase
+    .from("products")
+    .select("id, brand, model, sku, msrp, sale_price")
+    .in(
+      "id",
+      items.map((item) => item.product_id)
+    );
+  if (productsError || !products) {
+    return {
+      ok: true as const,
+      id: data as string,
+      emailed: false,
+      message: "Guardamos tu solicitud, pero no pudimos armar el correo.",
+    };
+  }
+
+  const quantityById = new Map(items.map((item) => [item.product_id, item.quantity]));
+  const sent = await sendInquiryEmails({
+    name: name.trim(),
+    company: company.trim(),
+    email: email.trim(),
+    phone: phone.trim(),
+    note: note.trim(),
+    items: products.map((product) => ({
+      brand: product.brand,
+      model: product.model,
+      sku: product.sku,
+      quantity: quantityById.get(product.id) ?? 1,
+      msrp: toNumber(product.msrp),
+      salePrice: toNumber(product.sale_price),
+    })),
+  });
+
+  if (!sent.ok) {
+    return {
+      ok: true as const,
+      id: data as string,
+      emailed: false,
+      message: "Guardamos tu solicitud, pero el correo no se pudo enviar.",
+    };
+  }
+
+  return { ok: true as const, id: data as string, emailed: true };
 }

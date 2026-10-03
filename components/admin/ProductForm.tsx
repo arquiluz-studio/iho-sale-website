@@ -8,6 +8,7 @@ import type { AdminProduct, ProductCategory } from "@/lib/types";
 type Draft = {
   brand: string;
   model: string;
+  sku: string;
   description: string;
   category: ProductCategory;
   cost: string;
@@ -29,6 +30,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const [draft, setDraft] = useState<Draft>({
     brand: product?.brand ?? "",
     model: product?.model ?? "",
+    sku: product?.sku ?? "",
     description: product?.description ?? "",
     category: product?.category ?? "mobiliario",
     cost: product ? money(product.cost) : "",
@@ -91,6 +93,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           <TextField label="Marca" name="brand" value={draft.brand} onChange={(brand) => setDraft({ ...draft, brand })} required />
           <TextField label="Modelo" name="model" value={draft.model} onChange={(model) => setDraft({ ...draft, model })} required />
         </div>
+        <TextField label="SKU" name="sku" value={draft.sku} onChange={(sku) => setDraft({ ...draft, sku })} />
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Categoría</span>
           <select

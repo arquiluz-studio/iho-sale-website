@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getInquiries } from "@/lib/admin";
-import { formatMXN, statusLabel } from "@/lib/format";
+import { formatUSD, statusLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export default async function InquiriesPage() {
                 {inquiry.email} · {inquiry.phone}
               </p>
               <p className="mt-1 text-sm text-gray-500">
-                {inquiry.items.length} {inquiry.items.length === 1 ? "pieza" : "piezas"} · {formatMXN(total)}
+                {inquiry.items.length} {inquiry.items.length === 1 ? "pieza" : "piezas"} · {formatUSD(total)}
               </p>
             </Link>
           );

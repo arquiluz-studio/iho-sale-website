@@ -9,7 +9,7 @@ type SelectionContextValue = {
   items: SelectionDraft[];
   count: number;
   ready: boolean;
-  add: (item: Omit<SelectionDraft, "quantity">) => void;
+  add: (item: Omit<SelectionDraft, "quantity">, quantity: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
@@ -24,7 +24,15 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) setItems(JSON.parse(stored) as SelectionDraft[]);
+      if (stored) {
+        const parsed = JSON.parse(stored) as SelectionDraft[];
+        setItems(
+          parsed.map((item) => ({
+            ...item,
+            msrp: typeof item.msrp === "number" ? item.msrp : item.salePrice,
+          }))
+        );
+      }
     } catch {
       setItems([]);
     }
@@ -41,17 +49,16 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       items,
       count: items.reduce((total, item) => total + item.quantity, 0),
       ready,
-      add(item) {
+      add(item, quantity) {
+        const nextQuantity = Math.min(item.stock, Math.max(1, Math.floor(quantity)));
         setItems((current) => {
           const existing = current.find((entry) => entry.productId === item.productId);
           if (existing) {
             return current.map((entry) =>
-              entry.productId === item.productId
-                ? { ...entry, ...item, quantity: Math.min(entry.stock, entry.quantity + 1) }
-                : entry
+              entry.productId === item.productId ? { ...entry, ...item, quantity: nextQuantity } : entry
             );
           }
-          return [...current, { ...item, quantity: 1 }];
+          return [...current, { ...item, quantity: nextQuantity }];
         });
       },
       setQuantity(productId, quantity) {

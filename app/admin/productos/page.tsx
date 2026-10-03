@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminProducts } from "@/lib/admin";
-import { categoryLabel, formatMXN, productImageUrl } from "@/lib/format";
+import { categoryLabel, formatUSD, productImageUrl, properCase } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -41,16 +41,19 @@ export default async function ProductsPage() {
                         )}
                       </span>
                       <span>
-                        <span className="block text-xs uppercase tracking-wider text-gray-500">{product.brand}</span>
-                        <span className="font-medium">{product.model}</span>
+                        <span className="block text-xs tracking-wider text-gray-500">{properCase(product.brand)}</span>
+                        <span className="font-medium">
+                          {product.model}
+                          {product.sku && <span className="ml-2 font-normal text-gray-500">{product.sku}</span>}
+                        </span>
                       </span>
                     </Link>
                   </td>
                   <td className="px-4 py-3">{categoryLabel(product.category)}</td>
-                  <td className="px-4 py-3">{formatMXN(product.cost)}</td>
-                  <td className="px-4 py-3">{formatMXN(product.msrp)}</td>
+                  <td className="px-4 py-3">{formatUSD(product.cost)}</td>
+                  <td className="px-4 py-3">{formatUSD(product.msrp)}</td>
                   <td className="px-4 py-3">
-                    {formatMXN(product.salePrice)}
+                    {formatUSD(product.salePrice)}
                     <span className="ml-2 text-xs text-gray-500">-{product.discountPercent}%</span>
                   </td>
                   <td className="px-4 py-3">{product.stock}</td>

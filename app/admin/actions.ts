@@ -21,6 +21,7 @@ export async function saveProduct(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const brand = String(formData.get("brand") ?? "").trim();
   const model = String(formData.get("model") ?? "").trim();
+  const sku = String(formData.get("sku") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const category = String(formData.get("category") ?? "") as ProductCategory;
   const cost = parseMoney(formData.get("cost"));
@@ -30,6 +31,7 @@ export async function saveProduct(formData: FormData) {
   const file = formData.get("image");
 
   if (!brand || !model) return { ok: false as const, message: "Marca y modelo son obligatorios." };
+  if (sku.length > 80) return { ok: false as const, message: "El SKU puede tener hasta 80 caracteres." };
   if (category !== "mobiliario" && category !== "accesorio") {
     return { ok: false as const, message: "Elige una categoría." };
   }
@@ -43,6 +45,7 @@ export async function saveProduct(formData: FormData) {
   const payload = {
     brand,
     model,
+    sku: sku || null,
     description,
     category,
     cost,

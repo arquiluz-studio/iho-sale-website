@@ -32,7 +32,7 @@ function SignInForm() {
     if (data.user?.app_metadata?.role !== "admin") {
       await supabase.auth.signOut();
       setPending(false);
-      setError("Esta cuenta no administra el sale.");
+      setError("Esta cuenta no administra el outlet.");
       return;
     }
 

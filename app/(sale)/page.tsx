@@ -19,26 +19,29 @@ export default async function HomePage({
   ]);
 
   return (
-    <main className="section-padding mx-auto max-w-7xl py-12 md:py-16">
-      <p className="text-xs uppercase tracking-[0.2em] text-arquiluz-accent">Sale</p>
-      <h1 className="mt-3 max-w-3xl font-serif text-4xl font-medium leading-tight md:text-6xl">
+    <main className="section-padding mx-auto max-w-7xl py-8 md:py-10">
+      <h1 className="font-serif text-3xl font-medium leading-tight md:text-4xl">
         Mobiliario y accesorios en remate.
       </h1>
-      <p className="mt-4 max-w-2xl text-gray-600">
+      <p className="mt-2 max-w-2xl text-sm text-gray-600">
         Elige las piezas que te interesan y alguien de IHO te contacta. Lo que ves es lo que hay.
       </p>
-      <div className="mt-10">
-        <CatalogFilters q={q} category={category} brand={brand} brands={brands} />
-      </div>
-      {products.length === 0 ? (
-        <p className="mt-16 text-gray-500">No hay piezas disponibles con esos filtros.</p>
-      ) : (
-        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+      <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-start">
+        <div className="w-full shrink-0 md:w-52">
+          <CatalogFilters q={q} category={category} brand={brand} brands={brands} />
         </div>
-      )}
+        <div className="min-w-0 flex-1">
+          {products.length === 0 ? (
+            <p className="text-gray-500">No hay piezas disponibles con esos filtros.</p>
+          ) : (
+            <div>
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

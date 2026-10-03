@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { fulfillInquiry, updateInquiryStatus } from "@/app/admin/actions";
-import { formatMXN } from "@/lib/format";
+import { formatUSD, properCase } from "@/lib/format";
 import type { Inquiry } from "@/lib/types";
 
 export function InquiryActions({ inquiry }: { inquiry: Inquiry }) {
@@ -33,10 +33,10 @@ export function InquiryActions({ inquiry }: { inquiry: Inquiry }) {
         {inquiry.items.map((item) => (
           <div key={item.id} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
             <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500">{item.brand}</p>
+              <p className="text-xs tracking-wider text-gray-500">{properCase(item.brand)}</p>
               <p className="font-serif text-xl">{item.model}</p>
               <p className="text-sm text-gray-600">
-                Pidió {item.quantityRequested} · {formatMXN(item.salePrice)}
+                Pidió {item.quantityRequested} · {formatUSD(item.salePrice)}
               </p>
             </div>
             {locked ? (
