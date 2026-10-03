@@ -14,7 +14,7 @@ export function SalePrice({
   const discount = discountFromPrices(msrp, salePrice);
 
   return (
-    <div className={align === "right" ? "text-right" : "text-left"}>
+    <div className={align === "right" ? "text-left sm:text-right" : "text-left"}>
       {discount > 0 && (
         <p className="text-xs text-gray-400">
           <span className="line-through">{formatUSD(msrp)}</span>

@@ -26,7 +26,7 @@ export default async function HomePage({
       <p className="mt-2 max-w-2xl text-sm text-gray-600">
         Elige las piezas que te interesan y alguien de IHO te contacta. Lo que ves es lo que hay.
       </p>
-      <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-start">
+      <div className="mt-6 flex flex-col gap-4 md:mt-8 md:flex-row md:items-start md:gap-8">
         <div className="w-full shrink-0 md:w-52">
           <CatalogFilters q={q} category={category} brand={brand} brands={brands} />
         </div>

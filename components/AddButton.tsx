@@ -15,7 +15,7 @@ export function AddButton({ item }: { item: Omit<SelectionDraft, "quantity"> }) 
   }
 
   return (
-    <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+    <div className="flex max-w-full items-center gap-2 sm:justify-end">
       <input
         type="number"
         min={1}
@@ -28,7 +28,7 @@ export function AddButton({ item }: { item: Omit<SelectionDraft, "quantity"> }) 
       <button
         type="button"
         onClick={() => add(item, clamp(quantity))}
-        className="border border-arquiluz-black px-3 py-1.5 text-xs font-medium tracking-wide transition-colors hover:bg-arquiluz-black hover:text-white"
+        className="min-w-0 flex-1 border border-arquiluz-black px-3 py-1.5 text-xs font-medium tracking-wide transition-colors hover:bg-arquiluz-black hover:text-white sm:flex-none"
       >
         {inList ? "En tu lista" : "Agregar a mi lista"}
       </button>
