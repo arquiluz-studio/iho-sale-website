@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { AdminProduct, CatalogProduct, Inquiry, InquiryItem, ProductCategory } from "@/lib/types";
 
 const PUBLIC_COLUMNS =
-  "id, brand, model, sku, description, category, msrp, discount_percent, sale_price, stock, image_path";
+  "id, brand, model, sku, dimensions, description, category, msrp, discount_percent, sale_price, stock, image_path";
 
 const ADMIN_COLUMNS = `${PUBLIC_COLUMNS}, cost`;
 
@@ -12,6 +12,7 @@ type ProductRow = {
   brand: string;
   model: string;
   sku: string | null;
+  dimensions: string | null;
   description: string;
   category: ProductCategory;
   msrp: number | string;
@@ -28,6 +29,7 @@ export function mapProduct(row: ProductRow): CatalogProduct {
     brand: row.brand,
     model: row.model,
     sku: row.sku?.trim() || null,
+    dimensions: row.dimensions?.trim() || null,
     description: row.description,
     category: row.category,
     msrp: toNumber(row.msrp),

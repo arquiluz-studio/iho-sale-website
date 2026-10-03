@@ -6,8 +6,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-arquiluz-gray">
       <header className="border-b border-black/10 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/admin" className="font-serif text-2xl">
-            IHO Outlet
+          <Link href="/admin" className="flex items-center gap-4">
+            <img src="/logos/logoIHO_rojo.svg" alt="IHO" width={84} height={34} className="h-[34px] w-auto" />
+            <span className="font-serif text-2xl tracking-wide">Outlet Admin</span>
           </Link>
           <nav className="flex items-center gap-5 text-sm">
             <Link href="/admin/productos" className="hover:text-arquiluz-accent">

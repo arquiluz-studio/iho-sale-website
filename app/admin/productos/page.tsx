@@ -21,6 +21,7 @@ export default async function ProductsPage() {
             <tr>
               <th className="px-4 py-3 font-medium">Pieza</th>
               <th className="px-4 py-3 font-medium">Categoría</th>
+              <th className="px-4 py-3 font-medium">Dimensiones</th>
               <th className="px-4 py-3 font-medium">Costo</th>
               <th className="px-4 py-3 font-medium">MSRP</th>
               <th className="px-4 py-3 font-medium">Venta</th>
@@ -50,6 +51,7 @@ export default async function ProductsPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3">{categoryLabel(product.category)}</td>
+                  <td className="px-4 py-3 text-gray-600">{product.dimensions}</td>
                   <td className="px-4 py-3">{formatUSD(product.cost)}</td>
                   <td className="px-4 py-3">{formatUSD(product.msrp)}</td>
                   <td className="px-4 py-3">
@@ -62,7 +64,7 @@ export default async function ProductsPage() {
             })}
             {products.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-gray-500">
+                <td colSpan={7} className="px-4 py-8 text-gray-500">
                   Todavía no hay piezas.
                 </td>
               </tr>

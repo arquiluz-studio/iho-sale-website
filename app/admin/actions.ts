@@ -22,6 +22,7 @@ export async function saveProduct(formData: FormData) {
   const brand = String(formData.get("brand") ?? "").trim();
   const model = String(formData.get("model") ?? "").trim();
   const sku = String(formData.get("sku") ?? "").trim();
+  const dimensions = String(formData.get("dimensions") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const category = String(formData.get("category") ?? "") as ProductCategory;
   const cost = parseMoney(formData.get("cost"));
@@ -32,6 +33,7 @@ export async function saveProduct(formData: FormData) {
 
   if (!brand || !model) return { ok: false as const, message: "Marca y modelo son obligatorios." };
   if (sku.length > 80) return { ok: false as const, message: "El SKU puede tener hasta 80 caracteres." };
+  if (dimensions.length > 120) return { ok: false as const, message: "Las dimensiones pueden tener hasta 120 caracteres." };
   if (category !== "mobiliario" && category !== "accesorio") {
     return { ok: false as const, message: "Elige una categoría." };
   }
@@ -46,6 +48,7 @@ export async function saveProduct(formData: FormData) {
     brand,
     model,
     sku: sku || null,
+    dimensions: dimensions || null,
     description,
     category,
     cost,
@@ -79,7 +82,12 @@ export async function saveProduct(formData: FormData) {
     const previous = data.image_path as string | null;
     const { error: imageError } = await supabase.from("products").update({ image_path: path }).eq("id", data.id);
     if (imageError) return { ok: false as const, message: imageError.message };
-    if (previous) await supabase.storage.from("product-images").remove([previous]);
+    if (previous && previous !== path) await supabase.storage.from("product-images").remove([previous]);
+  } else if (String(formData.get("remove_image") ?? "") === "1" && data.image_path) {
+    const previous = data.image_path as string;
+    const { error: imageError } = await supabase.from("products").update({ image_path: null }).eq("id", data.id);
+    if (imageError) return { ok: false as const, message: imageError.message };
+    await supabase.storage.from("product-images").remove([previous]);
   }
 
   revalidatePath("/");

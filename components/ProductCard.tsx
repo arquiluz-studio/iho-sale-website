@@ -38,6 +38,16 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           {product.description && (
             <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-gray-600">{product.description}</p>
           )}
+          {product.dimensions && (
+            <p className="mt-1 text-sm text-gray-500">
+              {product.dimensions.split(" × ").map((part, index) => (
+                <span key={`${part}-${index}`}>
+                  {index > 0 && <span> × </span>}
+                  <span className="whitespace-nowrap">{part}</span>
+                </span>
+              ))}
+            </p>
+          )}
         </div>
 
         <div className="flex w-full shrink-0 flex-col items-end gap-2 sm:w-auto">

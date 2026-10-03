@@ -4,7 +4,7 @@ import { toNumber } from "@/lib/format";
 import type { AdminProduct, Inquiry, InquiryItem, InquiryStatus } from "@/lib/types";
 
 const ADMIN_COLUMNS =
-  "id, brand, model, sku, description, category, cost, msrp, discount_percent, sale_price, stock, image_path";
+  "id, brand, model, sku, dimensions, description, category, cost, msrp, discount_percent, sale_price, stock, image_path";
 
 export async function getAdminProducts() {
   const { supabase } = await requireAdmin();

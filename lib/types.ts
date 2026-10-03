@@ -6,6 +6,7 @@ export type CatalogProduct = {
   brand: string;
   model: string;
   sku: string | null;
+  dimensions: string | null;
   description: string;
   category: ProductCategory;
   msrp: number;

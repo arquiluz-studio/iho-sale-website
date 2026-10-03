@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteProduct, saveProduct } from "@/app/admin/actions";
+import { productImageUrl } from "@/lib/format";
 import type { AdminProduct, ProductCategory } from "@/lib/types";
 
 type Draft = {
   brand: string;
   model: string;
   sku: string;
+  dimensions: string;
   description: string;
   category: ProductCategory;
   cost: string;
@@ -31,6 +33,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     brand: product?.brand ?? "",
     model: product?.model ?? "",
     sku: product?.sku ?? "",
+    dimensions: product?.dimensions ?? "",
     description: product?.description ?? "",
     category: product?.category ?? "mobiliario",
     cost: product ? money(product.cost) : "",
@@ -40,9 +43,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     stock: product ? String(product.stock) : "1",
   });
   const router = useRouter();
+  const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const savedImage = product?.imagePath ? productImageUrl(product.imagePath) : null;
+  const shownImage = preview ?? (removeImage ? null : savedImage);
 
   const linked = useMemo(() => draft, [draft]);
 
@@ -88,12 +95,21 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       }}
     >
       {product && <input type="hidden" name="id" value={product.id} />}
+      <input type="hidden" name="remove_image" value={removeImage && !preview ? "1" : "0"} />
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="Marca" name="brand" value={draft.brand} onChange={(brand) => setDraft({ ...draft, brand })} required />
           <TextField label="Modelo" name="model" value={draft.model} onChange={(model) => setDraft({ ...draft, model })} required />
         </div>
-        <TextField label="SKU" name="sku" value={draft.sku} onChange={(sku) => setDraft({ ...draft, sku })} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField label="SKU" name="sku" value={draft.sku} onChange={(sku) => setDraft({ ...draft, sku })} />
+          <TextField
+            label="Dimensiones"
+            name="dimensions"
+            value={draft.dimensions}
+            onChange={(dimensions) => setDraft({ ...draft, dimensions })}
+          />
+        </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Categoría</span>
           <select
@@ -149,26 +165,48 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
 
       <div className="space-y-4">
         <label className="block text-sm">
-          <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Foto</span>
+          <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">
+            {savedImage && !removeImage ? "Reemplazar foto" : "Foto"}
+          </span>
           <input
+            ref={fileInput}
             name="image"
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={(event) => {
               const file = event.target.files?.[0];
+              if (preview) URL.revokeObjectURL(preview);
               setPreview(file ? URL.createObjectURL(file) : null);
+              if (file) setRemoveImage(false);
             }}
             className="w-full text-sm"
           />
         </label>
-        <div className="flex h-64 items-center justify-center bg-arquiluz-gray">
-          {preview ? (
+        <div className="flex h-64 items-center justify-center bg-arquiluz-gray p-4">
+          {shownImage ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt="" className="h-full w-full object-cover" />
+            <img src={shownImage} alt="" className="h-full w-full object-contain" />
           ) : (
-            <span className="text-sm text-gray-400">{product?.imagePath ? "Foto actual guardada" : "Sin foto"}</span>
+            <span className="text-sm text-gray-400">Sin foto</span>
           )}
         </div>
+        {shownImage && (
+          <button
+            type="button"
+            className="w-full border border-black/20 px-5 py-2 text-sm text-gray-600 hover:border-arquiluz-accent hover:text-arquiluz-accent"
+            onClick={() => {
+              if (preview) {
+                URL.revokeObjectURL(preview);
+                setPreview(null);
+                if (fileInput.current) fileInput.current.value = "";
+                return;
+              }
+              setRemoveImage(true);
+            }}
+          >
+            Quitar foto
+          </button>
+        )}
         {error && <p className="text-sm text-arquiluz-accent">{error}</p>}
         <button type="submit" disabled={pending} className="w-full bg-arquiluz-black px-5 py-3 text-sm font-medium text-white disabled:opacity-40">
           {pending ? "Guardando…" : "Guardar"}
