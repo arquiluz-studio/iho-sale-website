@@ -45,6 +45,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
@@ -84,14 +85,23 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         event.preventDefault();
         setPending(true);
         setError(null);
-        const result = await saveProduct(new FormData(event.currentTarget));
-        if (!result.ok) {
-          setError(result.message);
+        setSaved(false);
+        try {
+          const result = await saveProduct(new FormData(event.currentTarget));
+          if (!result.ok) {
+            setError(result.message);
+            return;
+          }
+          if (preview) URL.revokeObjectURL(preview);
+          setPreview(null);
+          setRemoveImage(false);
+          if (fileInput.current) fileInput.current.value = "";
+          setSaved(true);
+          if (!product) router.push(`/admin/productos/${result.id}`);
+          router.refresh();
+        } finally {
           setPending(false);
-          return;
         }
-        router.push(`/admin/productos/${result.id}`);
-        router.refresh();
       }}
     >
       {product && <input type="hidden" name="id" value={product.id} />}
@@ -208,6 +218,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </button>
         )}
         {error && <p className="text-sm text-arquiluz-accent">{error}</p>}
+        {saved && <p className="text-sm">Guardado.</p>}
         <button type="submit" disabled={pending} className="w-full bg-arquiluz-black px-5 py-3 text-sm font-medium text-white disabled:opacity-40">
           {pending ? "Guardando…" : "Guardar"}
         </button>
