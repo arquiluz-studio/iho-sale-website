@@ -207,6 +207,18 @@ export async function saveCategoryImage(formData: FormData) {
   return { ok: true as const };
 }
 
+export async function saveInquiryEmail(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const email = String(formData.get("inquiry_email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) {
+    return { ok: false as const, message: "Escribe un correo válido." };
+  }
+  const { error } = await supabase.from("outlet_settings").update({ inquiry_email: email }).eq("id", 1);
+  if (error) return { ok: false as const, message: error.message };
+  revalidatePath("/admin/solicitudes");
+  return { ok: true as const };
+}
+
 export async function signOut() {
   const { supabase } = await requireAdmin();
   await supabase.auth.signOut();

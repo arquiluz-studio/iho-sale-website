@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { getInquiries } from "@/lib/admin";
+import { InquiryEmailForm } from "@/components/admin/InquiryEmailForm";
+import { getInquiries, getInquiryEmailSetting } from "@/lib/admin";
 import { formatUSD, statusLabel, withItbms } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function InquiriesPage() {
-  const inquiries = await getInquiries();
+  const [inquiries, inquiryEmail] = await Promise.all([getInquiries(), getInquiryEmailSetting()]);
 
   return (
     <main>
       <h1 className="font-serif text-4xl">Solicitudes</h1>
+      <InquiryEmailForm email={inquiryEmail} />
       <div className="mt-8 divide-y divide-black/10 bg-white">
         {inquiries.map((inquiry) => {
           const subtotal = inquiry.items.reduce((sum, item) => sum + item.salePrice * item.quantityRequested, 0);

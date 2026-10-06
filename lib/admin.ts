@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { readInquiryEmail } from "@/lib/inquiry-email";
 import { getCategories, mapAdminProduct } from "@/lib/catalog";
 import { toNumber } from "@/lib/format";
 import type { AdminProduct, Inquiry, InquiryItem, InquiryStatus, ProductCategoryNode } from "@/lib/types";
@@ -82,6 +83,11 @@ function mapInquiry(row: InquiryRow): Inquiry {
 
 const INQUIRY_SELECT =
   "id, name, company, email, phone, note, status, created_at, inquiry_items(id, product_id, brand, model, quantity_requested, quantity_fulfilled, sale_price)";
+
+export async function getInquiryEmailSetting() {
+  const { supabase } = await requireAdmin();
+  return readInquiryEmail(supabase);
+}
 
 export async function getInquiries() {
   const { supabase } = await requireAdmin();

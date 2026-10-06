@@ -1,6 +1,13 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatUSD, withItbms } from "@/lib/format";
 
-const IHO_EMAIL = "info@iho.com.pa";
+export const DEFAULT_INQUIRY_EMAIL = "cbembo@iho.com.pa";
+
+export async function readInquiryEmail(supabase: SupabaseClient) {
+  const { data } = await supabase.from("outlet_settings").select("inquiry_email").eq("id", 1).maybeSingle();
+  const email = typeof data?.inquiry_email === "string" ? data.inquiry_email.trim() : "";
+  return email || DEFAULT_INQUIRY_EMAIL;
+}
 
 export type InquiryEmailItem = {
   brand: string;
@@ -20,9 +27,10 @@ type InquiryEmailInput = {
   items: InquiryEmailItem[];
 };
 
-export async function sendInquiryEmails(input: InquiryEmailInput) {
+export async function sendInquiryEmails(input: InquiryEmailInput & { notifyEmail: string }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.INQUIRY_FROM_EMAIL || `IHO Outlet <${IHO_EMAIL}>`;
+  const notifyEmail = input.notifyEmail.trim() || DEFAULT_INQUIRY_EMAIL;
+  const from = process.env.INQUIRY_FROM_EMAIL || "IHO Outlet <info@iho.com.pa>";
   if (!apiKey) {
     return { ok: false as const, message: "Falta configurar el envío de correo." };
   }
@@ -63,7 +71,7 @@ export async function sendInquiryEmails(input: InquiryEmailInput) {
 
   const iho = await sendEmail(apiKey, {
     from,
-    to: IHO_EMAIL,
+    to: notifyEmail,
     replyTo: input.email,
     subject: `Nueva solicitud de Outlet — ${input.name}`,
     html: `<p>Llegó una solicitud del outlet.</p><p>${contact}</p>${table}${totals}`,
@@ -73,12 +81,12 @@ export async function sendInquiryEmails(input: InquiryEmailInput) {
   const client = await sendEmail(apiKey, {
     from,
     to: input.email,
-    replyTo: IHO_EMAIL,
+    replyTo: notifyEmail,
     subject: "Recibimos tu solicitud — IHO Outlet",
     html: `<p>Hola ${escapeHtml(input.name)},</p>
       <p>Recibimos tu lista. Alguien de IHO te contacta para confirmar disponibilidad. El precio es para retirar en tienda y no incluye costos de entrega.</p>
       ${table}${totals}
-      <p>Si necesitas algo más, escribe a <a href="mailto:${IHO_EMAIL}">${IHO_EMAIL}</a>.</p>`,
+      <p>Si necesitas algo más, escribe a <a href="mailto:${escapeHtml(notifyEmail)}">${escapeHtml(notifyEmail)}</a>.</p>`,
   });
   return client;
 }

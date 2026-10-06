@@ -1,6 +1,6 @@
 "use server";
 
-import { sendInquiryEmails } from "@/lib/inquiry-email";
+import { readInquiryEmail, sendInquiryEmails } from "@/lib/inquiry-email";
 import { toNumber } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -60,6 +60,7 @@ export async function submitInquiry(formData: FormData) {
 
   const quantityById = new Map(items.map((item) => [item.product_id, item.quantity]));
   const sent = await sendInquiryEmails({
+    notifyEmail: await readInquiryEmail(supabase),
     name: name.trim(),
     company: company.trim(),
     email: email.trim(),
