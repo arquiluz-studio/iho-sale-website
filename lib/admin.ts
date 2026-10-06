@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { readInquiryEmail } from "@/lib/inquiry-email";
 import { getCategories, mapAdminProduct } from "@/lib/catalog";
-import { toNumber } from "@/lib/format";
+import { productImageUrl, toNumber } from "@/lib/format";
 import type { AdminProduct, Inquiry, InquiryItem, InquiryStatus, ProductCategoryNode } from "@/lib/types";
 
 const ADMIN_COLUMNS =
@@ -63,9 +63,12 @@ function mapInquiry(row: InquiryRow): Inquiry {
     productId: item.product_id,
     brand: item.brand,
     model: item.model,
+    sku: null,
     quantityRequested: item.quantity_requested,
     quantityFulfilled: item.quantity_fulfilled,
+    msrp: toNumber(item.sale_price),
     salePrice: toNumber(item.sale_price),
+    imageUrl: null,
   }));
 
   return {
@@ -100,7 +103,32 @@ export async function getInquiry(id: string) {
   const { supabase } = await requireAdmin();
   const { data, error } = await supabase.from("inquiries").select(INQUIRY_SELECT).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return data ? mapInquiry(data as InquiryRow) : null;
+  if (!data) return null;
+  return attachInquiryProducts(supabase, mapInquiry(data as InquiryRow));
+}
+
+async function attachInquiryProducts(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  inquiry: Inquiry
+) {
+  const ids = inquiry.items.map((item) => item.productId).filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return inquiry;
+  const { data, error } = await supabase.from("products").select("id, sku, msrp, image_path").in("id", ids);
+  if (error) throw new Error(error.message);
+  const products = new Map(
+    (data ?? []).map((product) => [
+      product.id,
+      { sku: product.sku as string | null, msrp: toNumber(product.msrp), imageUrl: productImageUrl(product.image_path) },
+    ])
+  );
+  return {
+    ...inquiry,
+    items: inquiry.items.map((item) => {
+      const product = item.productId ? products.get(item.productId) : undefined;
+      if (!product) return item;
+      return { ...item, sku: product.sku, msrp: product.msrp, imageUrl: product.imageUrl };
+    }),
+  };
 }
 
 export async function getAdminSummary() {

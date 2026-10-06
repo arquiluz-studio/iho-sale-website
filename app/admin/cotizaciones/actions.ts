@@ -80,6 +80,10 @@ export async function saveQuote(formData: FormData) {
 
   let quoteId = id;
   if (quoteId) {
+    const { data: current, error: currentError } = await supabase.from("quotes").select("status").eq("id", quoteId).maybeSingle();
+    if (currentError) return { ok: false as const, message: currentError.message };
+    if (!current) return { ok: false as const, message: "No encontramos la cotización." };
+    if (current.status === "despachada") return { ok: false as const, message: "Esta cotización ya fue despachada." };
     const { error } = await supabase.from("quotes").update(header).eq("id", quoteId);
     if (error) return { ok: false as const, message: error.message };
   } else {
@@ -248,10 +252,48 @@ export async function sendQuote(formData: FormData) {
   const sent = await sendQuotePdf(quote, pdf, copyTo);
   if (!sent.ok) return sent;
 
-  const { error } = await supabase.from("quotes").update({ status: "enviada", sent_at: new Date().toISOString() }).eq("id", quote.id);
+  const status = quote.status === "borrador" ? "enviada" : quote.status;
+  const { error } = await supabase
+    .from("quotes")
+    .update({ status, sent_at: new Date().toISOString() })
+    .eq("id", quote.id);
   if (error) return { ok: false as const, message: error.message };
 
   revalidatePath("/admin/cotizaciones");
   revalidatePath(`/admin/cotizaciones/${quote.id}`);
   return { ok: true as const, id: quote.id, message: sent.message };
+}
+
+export async function confirmQuote(formData: FormData) {
+  const saved = await saveQuote(formData);
+  if (!saved.ok) return saved;
+
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.from("quotes").select("status").eq("id", saved.id).maybeSingle();
+  if (error || !data) return { ok: false as const, message: error?.message ?? "No encontramos la cotización." };
+  if (data.status === "despachada") return { ok: false as const, message: "Esta cotización ya fue despachada." };
+  if (data.status !== "confirmada") {
+    const { error: updateError } = await supabase.from("quotes").update({ status: "confirmada" }).eq("id", saved.id);
+    if (updateError) return { ok: false as const, message: updateError.message };
+  }
+
+  revalidatePath("/admin/cotizaciones");
+  revalidatePath(`/admin/cotizaciones/${saved.id}`);
+  return { ok: true as const, id: saved.id };
+}
+
+export async function dispatchQuote(formData: FormData) {
+  const saved = await saveQuote(formData);
+  if (!saved.ok) return saved;
+
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("dispatch_quote", { p_quote_id: saved.id });
+  if (error) return { ok: false as const, message: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/productos");
+  revalidatePath("/admin/productos");
+  revalidatePath("/admin/cotizaciones");
+  revalidatePath(`/admin/cotizaciones/${saved.id}`);
+  return { ok: true as const, id: saved.id, message: "Despachada. El stock ya bajó." };
 }

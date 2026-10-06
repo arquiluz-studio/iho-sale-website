@@ -1,4 +1,4 @@
-import type { InquiryStatus } from "@/lib/types";
+import type { InquiryStatus, QuoteStatus } from "@/lib/types";
 
 export function withItbms(subtotal: number) {
   const cents = Math.round(subtotal * 100);
@@ -36,18 +36,31 @@ export function properCase(value: string) {
     .replace(/(^|\s|-)(\p{L})/gu, (_, separator: string, letter: string) => separator + letter.toLocaleUpperCase("es"));
 }
 
-export function quoteTotals(items: { salePrice: number; quantity: number }[], shipping: number) {
+export function quoteTotals(items: { msrp: number; salePrice: number; quantity: number }[], shipping: number) {
+  const listTotal = items.reduce((sum, item) => {
+    const listPrice = item.msrp > item.salePrice ? item.msrp : item.salePrice;
+    return sum + listPrice * item.quantity;
+  }, 0);
   const subtotal = items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
   const taxed = withItbms(subtotal + shipping);
-  return { subtotal, shipping, itbms: taxed.itbms, total: taxed.total };
+  return { listTotal, discount: listTotal - subtotal, subtotal, shipping, itbms: taxed.itbms, total: taxed.total };
 }
 
 export function formatQuoteNumber(number: number) {
   return `COT-${String(number).padStart(4, "0")}`;
 }
 
-export function quoteStatusLabel(status: "borrador" | "enviada") {
-  return status === "enviada" ? "Enviada" : "Borrador";
+export function quoteStatusLabel(status: QuoteStatus) {
+  switch (status) {
+    case "borrador":
+      return "Borrador";
+    case "enviada":
+      return "Enviada";
+    case "confirmada":
+      return "Confirmada";
+    case "despachada":
+      return "Despachada";
+  }
 }
 
 export function statusLabel(status: InquiryStatus) {

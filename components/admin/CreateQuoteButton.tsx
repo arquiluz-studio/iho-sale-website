@@ -25,7 +25,7 @@ export function CreateQuoteButton({ inquiryId }: { inquiryId: string }) {
           }
           router.push(`/admin/cotizaciones/${result.id}`);
         }}
-        className="border border-arquiluz-black px-4 py-2 text-sm disabled:opacity-40"
+        className="bg-arquiluz-black px-5 py-2 text-sm text-white disabled:opacity-40"
       >
         {pending ? "Creando…" : "Crear cotización"}
       </button>

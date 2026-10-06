@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage } from "pdf-lib";
 import sharp from "sharp";
-import { formatQuoteNumber, formatUSD, quoteTotals } from "@/lib/format";
+import { discountFromPrices, formatPercent, formatQuoteNumber, formatUSD, quoteTotals } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 
 const red = rgb(239 / 255, 72 / 255, 61 / 255);
@@ -103,27 +103,45 @@ export async function buildQuotePdf(quote: Quote) {
         height,
       });
     }
-    y = imageBottom + 12;
-    text(clip(`${item.brand}  ${item.model}`, 36), left + box + 8, 10, regular);
+    y = imageBottom + 20;
+    text(fit(`${item.brand}  ${item.model}`, regular, 10, 200), left + box + 8, 10, regular);
     text(clip(item.sku ?? "", 16), 300, 9, regular, gray);
     textRight(String(item.quantity), 430, 10, regular);
     textRight(formatUSD(item.salePrice), 490, 10, regular);
     textRight(formatUSD(item.salePrice * item.quantity), right, 10, regular);
+    const saved = discountFromPrices(item.msrp, item.salePrice);
+    if (saved > 0) {
+      y -= 12;
+      const listLabel = `Lista ${formatUSD(item.msrp)}`;
+      text(listLabel, left + box + 8, 8, regular, gray);
+      const listWidth = regular.widthOfTextAtSize(listLabel, 8);
+      page.drawLine({
+        start: { x: left + box + 8, y: y + 2 },
+        end: { x: left + box + 8 + listWidth, y: y + 2 },
+        thickness: 0.4,
+        color: gray,
+      });
+      text(`  -${formatPercent(saved)}`, left + box + 8 + listWidth, 8, regular, red);
+    }
     y = imageBottom - 10;
   }
 
-  if (y < 170) nextPage();
+  if (y < 220) nextPage();
   y -= 6;
-  page.drawLine({ start: { x: 340, y: y + 12 }, end: { x: right, y: y + 12 }, thickness: 0.5, color: line });
-  const rows: [string, string, boolean][] = [
-    ["Subtotal", formatUSD(totals.subtotal), false],
-    ["Envío", formatUSD(totals.shipping), false],
-    ["ITBMS 7%", formatUSD(totals.itbms), false],
-    ["Total", formatUSD(totals.total), true],
+  page.drawLine({ start: { x: 300, y: y + 12 }, end: { x: right, y: y + 12 }, thickness: 0.5, color: line });
+  const rows: [string, string, "discount" | "total" | "plain"][] = [
+    ["Precio de lista", formatUSD(totals.listTotal), "plain"],
+    ["Descuento", `-${formatUSD(totals.discount)}`, "discount"],
+    ["Subtotal", formatUSD(totals.subtotal), "plain"],
+    ["Envío", formatUSD(totals.shipping), "plain"],
+    ["ITBMS 7%", formatUSD(totals.itbms), "plain"],
+    ["A pagar", formatUSD(totals.total), "total"],
   ];
-  for (const [label, value, strong] of rows) {
-    text(label, 360, strong ? 12 : 10, strong ? bold : regular, strong ? black : gray);
-    textRight(value, right, strong ? 12 : 10, strong ? bold : regular);
+  for (const [label, value, kind] of rows) {
+    const strong = kind === "total";
+    const color = kind === "discount" ? red : strong ? black : gray;
+    text(label, 320, strong ? 12 : 10, strong ? bold : regular, kind === "discount" ? red : strong ? black : gray);
+    textRight(value, right, strong ? 12 : 10, strong ? bold : regular, color);
     y -= strong ? 20 : 16;
   }
 
@@ -172,6 +190,14 @@ function imageKind(bytes: Uint8Array) {
     return "webp";
   }
   return null;
+}
+
+function fit(value: string, font: PDFFont, size: number, maxWidth: number) {
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (font.widthOfTextAtSize(clean, size) <= maxWidth) return clean;
+  let end = clean.length;
+  while (end > 0 && font.widthOfTextAtSize(`${clean.slice(0, end)}...`, size) > maxWidth) end -= 1;
+  return `${clean.slice(0, end)}...`;
 }
 
 function clip(value: string, max: number) {

@@ -137,30 +137,6 @@ export async function updateInquiryStatus(formData: FormData) {
   return { ok: true as const };
 }
 
-export async function fulfillInquiry(formData: FormData) {
-  const { supabase } = await requireAdmin();
-  const id = String(formData.get("id") ?? "");
-  let items: { item_id: string; quantity: number }[] = [];
-  try {
-    items = JSON.parse(String(formData.get("items") ?? "[]"));
-  } catch {
-    return { ok: false as const, message: "No se pudieron leer las cantidades." };
-  }
-
-  const { error } = await supabase.rpc("fulfill_inquiry", {
-    p_inquiry_id: id,
-    p_items: items,
-  });
-  if (error) return { ok: false as const, message: error.message };
-
-  revalidatePath("/");
-  revalidatePath("/productos");
-  revalidatePath("/admin/productos");
-  revalidatePath("/admin/solicitudes");
-  revalidatePath(`/admin/solicitudes/${id}`);
-  return { ok: true as const };
-}
-
 export async function saveCategoryImage(formData: FormData) {
   const { supabase } = await requireAdmin();
   const id = String(formData.get("id") ?? "");

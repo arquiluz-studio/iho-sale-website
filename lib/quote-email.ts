@@ -15,10 +15,12 @@ export async function sendQuotePdf(quote: Quote, pdf: Uint8Array, copyTo: string
   const filename = `${number}.pdf`;
   const content = Buffer.from(pdf).toString("base64");
   const summary = `<p>Adjuntamos la cotización ${escapeHtml(number)}.</p>
-    <p>Subtotal: ${escapeHtml(formatUSD(totals.subtotal))}<br>
+    <p>Precio de lista: ${escapeHtml(formatUSD(totals.listTotal))}<br>
+    Descuento: -${escapeHtml(formatUSD(totals.discount))}<br>
+    Subtotal: ${escapeHtml(formatUSD(totals.subtotal))}<br>
     Envío: ${escapeHtml(formatUSD(totals.shipping))}<br>
     ITBMS 7%: ${escapeHtml(formatUSD(totals.itbms))}<br>
-    <strong>Total: ${escapeHtml(formatUSD(totals.total))}</strong></p>`;
+    <strong>A pagar: ${escapeHtml(formatUSD(totals.total))}</strong></p>`;
 
   const client = await sendEmail(apiKey, {
     from,
