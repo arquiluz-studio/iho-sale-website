@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage } from "pdf-lib";
+import sharp from "sharp";
 import { formatQuoteNumber, formatUSD, quoteTotals } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 
@@ -76,14 +77,39 @@ export async function buildQuotePdf(quote: Quote) {
   y -= 16;
   tableHeader();
 
+  const photos = new Map<string, PDFImage>();
+  await Promise.all(
+    quote.items.map(async (item) => {
+      if (!item.imageUrl || photos.has(item.imageUrl)) return;
+      const image = await loadPdfImage(pdf, item.imageUrl);
+      if (image) photos.set(item.imageUrl, image);
+    })
+  );
+
   for (const item of quote.items) {
-    if (y < 140) nextPage();
-    text(clip(`${item.brand}  ${item.model}`, 42), left, 10, regular);
+    if (y < 170) nextPage();
+    const box = 36;
+    const imageBottom = y - 22;
+    page.drawRectangle({ x: left, y: imageBottom, width: box, height: box, color: rgb(0.96, 0.96, 0.96) });
+    const photo = item.imageUrl ? photos.get(item.imageUrl) : undefined;
+    if (photo) {
+      const scale = Math.min(box / photo.width, box / photo.height);
+      const width = photo.width * scale;
+      const height = photo.height * scale;
+      page.drawImage(photo, {
+        x: left + (box - width) / 2,
+        y: imageBottom + (box - height) / 2,
+        width,
+        height,
+      });
+    }
+    y = imageBottom + 12;
+    text(clip(`${item.brand}  ${item.model}`, 36), left + box + 8, 10, regular);
     text(clip(item.sku ?? "", 16), 300, 9, regular, gray);
     textRight(String(item.quantity), 430, 10, regular);
     textRight(formatUSD(item.salePrice), 490, 10, regular);
     textRight(formatUSD(item.salePrice * item.quantity), right, 10, regular);
-    y -= 18;
+    y = imageBottom - 10;
   }
 
   if (y < 170) nextPage();
@@ -112,6 +138,40 @@ export async function buildQuotePdf(quote: Quote) {
   text("IHO Outlet  ·  info@iho.com.pa", left, 9, regular, gray);
 
   return pdf.save();
+}
+
+async function loadPdfImage(pdf: PDFDocument, url: string) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const kind = imageKind(bytes);
+    if (kind === "png") return pdf.embedPng(bytes);
+    if (kind === "jpg") return pdf.embedJpg(bytes);
+    if (kind === "webp") return pdf.embedPng(await sharp(bytes).png().toBuffer());
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function imageKind(bytes: Uint8Array) {
+  if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "png";
+  if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8) return "jpg";
+  if (
+    bytes.length > 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "webp";
+  }
+  return null;
 }
 
 function clip(value: string, max: number) {

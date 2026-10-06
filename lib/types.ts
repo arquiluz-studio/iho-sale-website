@@ -69,6 +69,7 @@ export type QuoteItem = {
   quantity: number;
   msrp: number;
   salePrice: number;
+  imageUrl: string | null;
 };
 
 export type Quote = {
@@ -95,6 +96,7 @@ export type QuoteProductOption = {
   msrp: number;
   salePrice: number;
   stock: number;
+  imageUrl: string | null;
 };
 
 export type SelectionDraft = {

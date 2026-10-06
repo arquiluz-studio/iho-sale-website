@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
-import { toNumber } from "@/lib/format";
+import { productImageUrl, toNumber } from "@/lib/format";
 import type { Quote, QuoteItem, QuoteProductOption, QuoteStatus } from "@/lib/types";
 
 type QuoteItemRow = {
@@ -43,6 +43,7 @@ function mapQuote(row: QuoteRow): Quote {
       quantity: item.quantity,
       msrp: toNumber(item.msrp),
       salePrice: toNumber(item.sale_price),
+      imageUrl: null,
     }))
     .sort((a, b) => a.brand.localeCompare(b.brand, "es") || a.model.localeCompare(b.model, "es"));
 
@@ -74,7 +75,8 @@ export async function getQuote(id: string) {
   const { supabase } = await requireAdmin();
   const { data, error } = await supabase.from("quotes").select(QUOTE_SELECT).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return data ? mapQuote(data as QuoteRow) : null;
+  if (!data) return null;
+  return attachImages(supabase, mapQuote(data as QuoteRow));
 }
 
 export async function getQuoteIdForInquiry(inquiryId: string) {
@@ -84,11 +86,26 @@ export async function getQuoteIdForInquiry(inquiryId: string) {
   return data?.id ?? null;
 }
 
+async function attachImages(supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"], quote: Quote) {
+  const ids = quote.items.map((item) => item.productId).filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return quote;
+  const { data, error } = await supabase.from("products").select("id, image_path").in("id", ids);
+  if (error) throw new Error(error.message);
+  const urls = new Map((data ?? []).map((product) => [product.id, productImageUrl(product.image_path)]));
+  return {
+    ...quote,
+    items: quote.items.map((item) => ({
+      ...item,
+      imageUrl: item.productId ? (urls.get(item.productId) ?? null) : null,
+    })),
+  };
+}
+
 export async function getQuoteProducts() {
   const { supabase } = await requireAdmin();
   const { data, error } = await supabase
     .from("products")
-    .select("id, brand, model, sku, msrp, sale_price, stock")
+    .select("id, brand, model, sku, msrp, sale_price, stock, image_path")
     .order("brand")
     .order("model");
   if (error) throw new Error(error.message);
@@ -101,6 +118,7 @@ export async function getQuoteProducts() {
       msrp: toNumber(product.msrp),
       salePrice: toNumber(product.sale_price),
       stock: product.stock,
+      imageUrl: productImageUrl(product.image_path),
     })
   );
 }

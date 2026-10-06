@@ -16,6 +16,7 @@ type Line = {
   quantity: number;
   msrp: number;
   salePrice: number;
+  imageUrl: string | null;
 };
 
 export function QuoteForm({ quote, products }: { quote: Quote | null; products: QuoteProductOption[] }) {
@@ -37,6 +38,7 @@ export function QuoteForm({ quote, products }: { quote: Quote | null; products: 
       quantity: item.quantity,
       msrp: item.msrp,
       salePrice: item.salePrice,
+      imageUrl: item.imageUrl,
     }))
   );
   const [query, setQuery] = useState("");
@@ -71,6 +73,7 @@ export function QuoteForm({ quote, products }: { quote: Quote | null; products: 
           quantity: 1,
           msrp: product.msrp,
           salePrice: product.salePrice,
+          imageUrl: product.imageUrl,
         },
       ];
     });
@@ -152,10 +155,13 @@ export function QuoteForm({ quote, products }: { quote: Quote | null; products: 
           <ul className="mt-2 divide-y divide-black/10 border border-black/10">
             {matches.map((product) => (
               <li key={product.id}>
-                <button type="button" onClick={() => addProduct(product)} className="flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-arquiluz-gray">
-                  <span>
-                    <span className="text-xs uppercase tracking-wider text-gray-500">{product.brand}</span>
-                    <span className="mt-0.5 block">{product.model}</span>
+                <button type="button" onClick={() => addProduct(product)} className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-arquiluz-gray">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <ProductThumb src={product.imageUrl} />
+                    <span className="min-w-0">
+                      <span className="text-xs uppercase tracking-wider text-gray-500">{product.brand}</span>
+                      <span className="mt-0.5 block truncate">{product.model}</span>
+                    </span>
                   </span>
                   <span className="shrink-0 text-gray-500">{formatUSD(product.salePrice)}</span>
                 </button>
@@ -167,7 +173,9 @@ export function QuoteForm({ quote, products }: { quote: Quote | null; products: 
         <div className="mt-6 divide-y divide-black/10">
           {lines.map((line) => (
             <div key={line.key} className="grid gap-3 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
-              <div>
+              <div className="flex min-w-0 items-center gap-3">
+                <ProductThumb src={line.imageUrl} />
+                <div className="min-w-0">
                 <p className="text-xs uppercase tracking-wider text-gray-500">{line.brand}</p>
                 <p>{line.model}</p>
                 <p className="text-sm text-gray-500">
@@ -175,6 +183,7 @@ export function QuoteForm({ quote, products }: { quote: Quote | null; products: 
                   {formatUSD(line.salePrice)}
                   {line.msrp > line.salePrice ? ` · lista ${formatUSD(line.msrp)}` : ""}
                 </p>
+                </div>
               </div>
               <label className="text-xs uppercase tracking-wider text-gray-500">
                 Cantidad
@@ -240,6 +249,17 @@ export function QuoteForm({ quote, products }: { quote: Quote | null; products: 
           </a>
         )}
       </div>
+    </div>
+  );
+}
+
+function ProductThumb({ src }: { src: string | null }) {
+  return (
+    <div className="h-14 w-14 shrink-0 bg-arquiluz-gray">
+      {src && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" className="h-full w-full object-contain" />
+      )}
     </div>
   );
 }
