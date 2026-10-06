@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { requireAdmin } from "@/lib/auth";
+import { getCategories } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
   await requireAdmin();
+  const categories = await getCategories();
 
   return (
     <main>
@@ -22,7 +24,7 @@ export default async function NewProductPage() {
         </Link>
       </div>
       <div className="mt-8 bg-white p-6">
-        <ProductForm />
+        <ProductForm categories={categories} />
       </div>
     </main>
   );

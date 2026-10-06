@@ -14,6 +14,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin/productos" className="hover:text-arquiluz-accent">
               Productos
             </Link>
+            <Link href="/admin/categorias" className="hover:text-arquiluz-accent">
+              Categorías
+            </Link>
             <Link href="/admin/solicitudes" className="hover:text-arquiluz-accent">
               Solicitudes
             </Link>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { submitInquiry } from "@/app/(sale)/solicitud/actions";
 import { SalePrice } from "@/components/SalePrice";
 import { useSelection } from "@/components/SelectionProvider";
-import { formatUSD, properCase } from "@/lib/format";
+import { formatUSD, properCase, withItbms } from "@/lib/format";
 
 export function RequestForm() {
   const { items, ready, setQuantity, remove, clear } = useSelection();
@@ -23,7 +23,7 @@ export function RequestForm() {
         <h2 className="font-serif text-3xl">Recibimos tu solicitud</h2>
         <p className="mt-3 max-w-xl text-gray-700">
           {done.emailed
-            ? "Alguien de IHO te contacta para confirmar disponibilidad y entrega. Te enviamos una copia a tu correo. No hay pago en esta página."
+            ? "Alguien de IHO te contacta para confirmar disponibilidad. El precio es para retirar en tienda y no incluye costos de entrega. Te enviamos una copia a tu correo. No hay pago en esta página."
             : done.message}
         </p>
         <Link href="/" className="mt-6 inline-block text-sm font-medium text-arquiluz-accent">
@@ -37,7 +37,7 @@ export function RequestForm() {
     return (
       <div className="border border-black/10 p-8">
         <p className="text-gray-700">Todavía no elegiste piezas.</p>
-        <Link href="/" className="mt-4 inline-block text-sm font-medium text-arquiluz-accent">
+        <Link href="/productos" className="mt-4 inline-block text-sm font-medium text-arquiluz-accent">
           Ver lo que hay en outlet
         </Link>
       </div>
@@ -48,8 +48,9 @@ export function RequestForm() {
     const listPrice = item.msrp > item.salePrice ? item.msrp : item.salePrice;
     return sum + listPrice * item.quantity;
   }, 0);
-  const payTotal = items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
-  const discountTotal = listTotal - payTotal;
+  const subtotal = items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const discountTotal = listTotal - subtotal;
+  const totals = withItbms(subtotal);
 
   return (
     <form
@@ -116,11 +117,20 @@ export function RequestForm() {
             <dt className="text-gray-500">Descuento</dt>
             <dd className="text-arquiluz-accent">-{formatUSD(discountTotal)}</dd>
           </div>
+          <div className="flex items-baseline justify-between gap-6">
+            <dt className="text-gray-500">Subtotal</dt>
+            <dd>{formatUSD(totals.subtotal)}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-6">
+            <dt className="text-gray-500">ITBMS 7%</dt>
+            <dd>{formatUSD(totals.itbms)}</dd>
+          </div>
           <div className="flex items-baseline justify-between gap-6 font-serif text-2xl text-arquiluz-black">
             <dt>A pagar</dt>
-            <dd>{formatUSD(payTotal)}</dd>
+            <dd>{formatUSD(totals.total)}</dd>
           </div>
         </dl>
+        <p className="text-sm text-gray-500">No incluye costos de entrega. El precio es para retirar en tienda.</p>
       </div>
 
       <div className="space-y-4 border border-black/10 p-6">

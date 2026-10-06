@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import type { ProductCategory } from "@/lib/types";
 
 function parseMoney(value: FormDataEntryValue | null) {
   const number = Number(String(value ?? "").replace(/,/g, ""));
@@ -24,7 +23,7 @@ export async function saveProduct(formData: FormData) {
   const sku = String(formData.get("sku") ?? "").trim();
   const dimensions = String(formData.get("dimensions") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const category = String(formData.get("category") ?? "") as ProductCategory;
+  const categoryId = String(formData.get("category_id") ?? "");
   const cost = parseMoney(formData.get("cost"));
   const msrp = parseMoney(formData.get("msrp"));
   const salePrice = parseMoney(formData.get("sale_price"));
@@ -34,8 +33,13 @@ export async function saveProduct(formData: FormData) {
   if (!brand || !model) return { ok: false as const, message: "Marca y modelo son obligatorios." };
   if (sku.length > 80) return { ok: false as const, message: "El SKU puede tener hasta 80 caracteres." };
   if (dimensions.length > 120) return { ok: false as const, message: "Las dimensiones pueden tener hasta 120 caracteres." };
-  if (category !== "mobiliario" && category !== "accesorio") {
-    return { ok: false as const, message: "Elige una categoría." };
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id, parent_id")
+    .eq("id", categoryId)
+    .maybeSingle();
+  if (!category?.parent_id) {
+    return { ok: false as const, message: "Elige una subcategoría." };
   }
   if (cost === null || msrp === null || salePrice === null) {
     return { ok: false as const, message: "Revisa costo, MSRP y precio de venta." };
@@ -50,7 +54,7 @@ export async function saveProduct(formData: FormData) {
     sku: sku || null,
     dimensions: dimensions || null,
     description,
-    category,
+    category_id: categoryId,
     cost,
     msrp,
     sale_price: salePrice,
@@ -91,6 +95,7 @@ export async function saveProduct(formData: FormData) {
   }
 
   revalidatePath("/");
+  revalidatePath("/productos");
   revalidatePath("/admin/productos");
   revalidatePath(`/admin/productos/${data.id}`);
   return { ok: true as const, id: data.id as string };
@@ -104,6 +109,7 @@ export async function deleteProduct(formData: FormData) {
   if (error) return { ok: false as const, message: error.message };
   if (imagePath) await supabase.storage.from("product-images").remove([imagePath]);
   revalidatePath("/");
+  revalidatePath("/productos");
   revalidatePath("/admin/productos");
   return { ok: true as const };
 }
@@ -148,9 +154,56 @@ export async function fulfillInquiry(formData: FormData) {
   if (error) return { ok: false as const, message: error.message };
 
   revalidatePath("/");
+  revalidatePath("/productos");
   revalidatePath("/admin/productos");
   revalidatePath("/admin/solicitudes");
   revalidatePath(`/admin/solicitudes/${id}`);
+  return { ok: true as const };
+}
+
+export async function saveCategoryImage(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const file = formData.get("image");
+  const remove = String(formData.get("remove_image") ?? "") === "1";
+
+  const { data: category, error: readError } = await supabase
+    .from("categories")
+    .select("id, parent_id, image_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (readError || !category || category.parent_id) {
+    return { ok: false as const, message: "Categoría no encontrada." };
+  }
+
+  if (file instanceof File && file.size > 0) {
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      return { ok: false as const, message: "La foto debe ser JPG, PNG o WebP de hasta 5 MB." };
+    }
+    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `categories/${category.id}/${Date.now()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+    if (uploadError) return { ok: false as const, message: uploadError.message };
+
+    const previous = category.image_path as string | null;
+    const { error: updateError } = await supabase.from("categories").update({ image_path: path }).eq("id", category.id);
+    if (updateError) return { ok: false as const, message: updateError.message };
+    if (previous && previous !== path) await supabase.storage.from("product-images").remove([previous]);
+  } else if (remove && category.image_path) {
+    const previous = category.image_path as string;
+    const { error: updateError } = await supabase.from("categories").update({ image_path: null }).eq("id", category.id);
+    if (updateError) return { ok: false as const, message: updateError.message };
+    await supabase.storage.from("product-images").remove([previous]);
+  } else {
+    return { ok: false as const, message: "Elige una foto." };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/categorias");
   return { ok: true as const };
 }
 

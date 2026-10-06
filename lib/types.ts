@@ -1,6 +1,21 @@
 export type ProductCategory = "mobiliario" | "accesorio";
 export type InquiryStatus = "nueva" | "en_contacto" | "surtida" | "cancelada";
 
+export type ProductCategoryNode = {
+  id: string;
+  parentId: string | null;
+  slug: string;
+  name: string;
+  sortOrder: number;
+  imagePath: string | null;
+};
+
+export type CatalogCategoryGroup = {
+  slug: string;
+  name: string;
+  children: { slug: string; name: string }[];
+};
+
 export type CatalogProduct = {
   id: string;
   brand: string;
@@ -9,6 +24,7 @@ export type CatalogProduct = {
   dimensions: string | null;
   description: string;
   category: ProductCategory;
+  categoryId: string;
   msrp: number;
   discountPercent: number;
   salePrice: number;
@@ -18,6 +34,7 @@ export type CatalogProduct = {
 
 export type AdminProduct = CatalogProduct & {
   cost: number;
+  categoryName: string;
 };
 
 export type InquiryItem = {

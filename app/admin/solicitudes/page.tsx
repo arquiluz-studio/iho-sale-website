@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getInquiries } from "@/lib/admin";
-import { formatUSD, statusLabel } from "@/lib/format";
+import { formatUSD, statusLabel, withItbms } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,8 @@ export default async function InquiriesPage() {
       <h1 className="font-serif text-4xl">Solicitudes</h1>
       <div className="mt-8 divide-y divide-black/10 bg-white">
         {inquiries.map((inquiry) => {
-          const total = inquiry.items.reduce((sum, item) => sum + item.salePrice * item.quantityRequested, 0);
+          const subtotal = inquiry.items.reduce((sum, item) => sum + item.salePrice * item.quantityRequested, 0);
+          const total = withItbms(subtotal).total;
           return (
             <Link key={inquiry.id} href={`/admin/solicitudes/${inquiry.id}`} className="block px-5 py-4 hover:bg-arquiluz-gray">
               <div className="flex items-baseline justify-between gap-4">

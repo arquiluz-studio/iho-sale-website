@@ -1,11 +1,9 @@
 import { productImageUrl, toNumber } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
-import type { AdminProduct, CatalogProduct, Inquiry, InquiryItem, ProductCategory } from "@/lib/types";
+import type { CatalogCategoryGroup, CatalogProduct, ProductCategory, ProductCategoryNode } from "@/lib/types";
 
 const PUBLIC_COLUMNS =
-  "id, brand, model, sku, dimensions, description, category, msrp, discount_percent, sale_price, stock, image_path";
-
-const ADMIN_COLUMNS = `${PUBLIC_COLUMNS}, cost`;
+  "id, brand, model, sku, dimensions, description, category, category_id, msrp, discount_percent, sale_price, stock, image_path";
 
 type ProductRow = {
   id: string;
@@ -15,6 +13,7 @@ type ProductRow = {
   dimensions: string | null;
   description: string;
   category: ProductCategory;
+  category_id: string;
   msrp: number | string;
   discount_percent: number | string;
   sale_price: number | string;
@@ -32,6 +31,7 @@ export function mapProduct(row: ProductRow): CatalogProduct {
     dimensions: row.dimensions?.trim() || null,
     description: row.description,
     category: row.category,
+    categoryId: row.category_id,
     msrp: toNumber(row.msrp),
     discountPercent: toNumber(row.discount_percent),
     salePrice: toNumber(row.sale_price),
@@ -40,11 +40,85 @@ export function mapProduct(row: ProductRow): CatalogProduct {
   };
 }
 
-export function mapAdminProduct(row: ProductRow): AdminProduct {
+export function mapAdminProduct(row: ProductRow) {
   return { ...mapProduct(row), cost: toNumber(row.cost) };
 }
 
-export async function getCatalog(filters: { q?: string; category?: string; brand?: string }) {
+type CategoryRow = {
+  id: string;
+  parent_id: string | null;
+  slug: string;
+  name: string;
+  sort_order: number;
+  image_path: string | null;
+};
+
+function mapCategory(row: CategoryRow): ProductCategoryNode {
+  return {
+    id: row.id,
+    parentId: row.parent_id,
+    slug: row.slug,
+    name: row.name,
+    sortOrder: row.sort_order,
+    imagePath: row.image_path,
+  };
+}
+
+export async function getCategories() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, parent_id, slug, name, sort_order, image_path")
+    .order("sort_order");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as CategoryRow[]).map(mapCategory);
+}
+
+export function categoryIdsForSlug(categories: ProductCategoryNode[], slug: string) {
+  const selected = categories.find((category) => category.slug === slug);
+  if (!selected) return null;
+  if (!selected.parentId) {
+    return categories.filter((category) => category.parentId === selected.id).map((category) => category.id);
+  }
+  return [selected.id];
+}
+
+export function catalogCategoryTree(categories: ProductCategoryNode[], counts: Map<string, number>): CatalogCategoryGroup[] {
+  return categories
+    .filter((category) => !category.parentId)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((parent) => ({
+      slug: parent.slug,
+      name: parent.name,
+      children: categories
+        .filter((category) => category.parentId === parent.id && (counts.get(category.id) ?? 0) > 0)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((category) => ({ slug: category.slug, name: category.name })),
+    }))
+    .filter((group) => group.children.length > 0);
+}
+
+export async function getInStockCategoryCounts() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("products").select("category_id").gt("stock", 0);
+  if (error) throw new Error(error.message);
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const id = row.category_id as string;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+export async function getCatalog(filters: {
+  q?: string;
+  brand?: string;
+  categoryIds?: string[] | null;
+  min?: number | null;
+  max?: number | null;
+}) {
+  if (filters.categoryIds && filters.categoryIds.length === 0) return [];
+
   const supabase = await createClient();
   let query = supabase
     .from("products")
@@ -53,9 +127,11 @@ export async function getCatalog(filters: { q?: string; category?: string; brand
     .order("brand")
     .order("model");
 
-  if (filters.category === "mobiliario" || filters.category === "accesorio") {
-    query = query.eq("category", filters.category);
+  if (filters.categoryIds) {
+    query = query.in("category_id", filters.categoryIds);
   }
+  if (filters.min != null) query = query.gte("sale_price", filters.min);
+  if (filters.max != null) query = query.lte("sale_price", filters.max);
   if (filters.brand) {
     query = query.eq("brand", filters.brand);
   }

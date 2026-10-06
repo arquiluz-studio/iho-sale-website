@@ -1,4 +1,4 @@
-import { formatUSD } from "@/lib/format";
+import { formatUSD, withItbms } from "@/lib/format";
 
 const IHO_EMAIL = "info@iho.com.pa";
 
@@ -31,8 +31,9 @@ export async function sendInquiryEmails(input: InquiryEmailInput) {
     const listPrice = item.msrp > item.salePrice ? item.msrp : item.salePrice;
     return sum + listPrice * item.quantity;
   }, 0);
-  const payTotal = input.items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
-  const discountTotal = listTotal - payTotal;
+  const subtotal = input.items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const discountTotal = listTotal - subtotal;
+  const totalsAmount = withItbms(subtotal);
   const rows = input.items
     .map((item) => {
       const sku = item.sku ? ` · ${escapeHtml(item.sku)}` : "";
@@ -54,8 +55,10 @@ export async function sendInquiryEmails(input: InquiryEmailInput) {
     .join("<br>");
   const totals = `<p>Precio de lista: ${escapeHtml(formatUSD(listTotal))}<br>
     Descuento: -${escapeHtml(formatUSD(discountTotal))}<br>
-    <strong>A pagar: ${escapeHtml(formatUSD(payTotal))}</strong></p>
-    <p style="color:#666;">No hay pago en esta página. IHO confirma disponibilidad y entrega.</p>`;
+    Subtotal: ${escapeHtml(formatUSD(totalsAmount.subtotal))}<br>
+    ITBMS 7%: ${escapeHtml(formatUSD(totalsAmount.itbms))}<br>
+    <strong>A pagar: ${escapeHtml(formatUSD(totalsAmount.total))}</strong></p>
+    <p style="color:#666;">No incluye costos de entrega. El precio es para retirar en tienda. No hay pago en esta página.</p>`;
   const table = `<table style="width:100%;border-collapse:collapse;font-family:sans-serif;font-size:14px;">${rows}</table>`;
 
   const iho = await sendEmail(apiKey, {
@@ -73,7 +76,7 @@ export async function sendInquiryEmails(input: InquiryEmailInput) {
     replyTo: IHO_EMAIL,
     subject: "Recibimos tu solicitud — IHO Outlet",
     html: `<p>Hola ${escapeHtml(input.name)},</p>
-      <p>Recibimos tu lista. Alguien de IHO te contacta para confirmar disponibilidad y entrega.</p>
+      <p>Recibimos tu lista. Alguien de IHO te contacta para confirmar disponibilidad. El precio es para retirar en tienda y no incluye costos de entrega.</p>
       ${table}${totals}
       <p>Si necesitas algo más, escribe a <a href="mailto:${IHO_EMAIL}">${IHO_EMAIL}</a>.</p>`,
   });

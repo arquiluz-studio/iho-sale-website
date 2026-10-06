@@ -1,4 +1,14 @@
-import type { InquiryStatus, ProductCategory } from "@/lib/types";
+import type { InquiryStatus } from "@/lib/types";
+
+export function withItbms(subtotal: number) {
+  const cents = Math.round(subtotal * 100);
+  const taxCents = Math.round((cents * 7) / 100);
+  return {
+    subtotal: cents / 100,
+    itbms: taxCents / 100,
+    total: (cents + taxCents) / 100,
+  };
+}
 
 export function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -24,10 +34,6 @@ export function properCase(value: string) {
   return value
     .toLocaleLowerCase("es")
     .replace(/(^|\s|-)(\p{L})/gu, (_, separator: string, letter: string) => separator + letter.toLocaleUpperCase("es"));
-}
-
-export function categoryLabel(category: ProductCategory) {
-  return category === "mobiliario" ? "Mobiliario" : "Accesorio";
 }
 
 export function statusLabel(status: InquiryStatus) {

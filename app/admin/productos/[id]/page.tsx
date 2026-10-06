@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { getAdminProduct } from "@/lib/admin";
+import { getCategories } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = await getAdminProduct(id);
+  const [product, categories] = await Promise.all([getAdminProduct(id), getCategories()]);
   if (!product) notFound();
 
   return (
@@ -25,7 +26,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         </Link>
       </div>
       <div className="mt-8 bg-white p-6">
-        <ProductForm product={product} />
+        <ProductForm product={product} categories={categories} />
       </div>
     </main>
   );

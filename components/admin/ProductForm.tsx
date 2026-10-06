@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteProduct, saveProduct } from "@/app/admin/actions";
 import { productImageUrl } from "@/lib/format";
-import type { AdminProduct, ProductCategory } from "@/lib/types";
+import type { AdminProduct, ProductCategoryNode } from "@/lib/types";
 
 type Draft = {
   brand: string;
@@ -12,7 +12,7 @@ type Draft = {
   sku: string;
   dimensions: string;
   description: string;
-  category: ProductCategory;
+  categoryId: string;
   cost: string;
   msrp: string;
   discount: string;
@@ -28,14 +28,15 @@ function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-export function ProductForm({ product }: { product?: AdminProduct }) {
+export function ProductForm({ product, categories }: { product?: AdminProduct; categories: ProductCategoryNode[] }) {
+  const parents = categories.filter((category) => !category.parentId).sort((a, b) => a.sortOrder - b.sortOrder);
   const [draft, setDraft] = useState<Draft>({
     brand: product?.brand ?? "",
     model: product?.model ?? "",
     sku: product?.sku ?? "",
     dimensions: product?.dimensions ?? "",
     description: product?.description ?? "",
-    category: product?.category ?? "mobiliario",
+    categoryId: product?.categoryId ?? "",
     cost: product ? money(product.cost) : "",
     msrp: product ? money(product.msrp) : "",
     discount: product ? money(product.discountPercent) : "",
@@ -123,13 +124,27 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Categoría</span>
           <select
-            name="category"
-            value={draft.category}
-            onChange={(event) => setDraft({ ...draft, category: event.target.value as ProductCategory })}
+            name="category_id"
+            value={draft.categoryId}
+            required
+            onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
             className="w-full border border-black/10 px-3 py-2"
           >
-            <option value="mobiliario">Mobiliario</option>
-            <option value="accesorio">Accesorio</option>
+            <option value="" disabled>
+              Elige una subcategoría
+            </option>
+            {parents.map((parent) => (
+              <optgroup key={parent.id} label={parent.name}>
+                {categories
+                  .filter((category) => category.parentId === parent.id)
+                  .sort((a, b) => a.sortOrder - b.sortOrder)
+                  .map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
           </select>
         </label>
         <label className="block text-sm">

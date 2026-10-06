@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminProducts } from "@/lib/admin";
-import { categoryLabel, formatUSD, productImageUrl, properCase } from "@/lib/format";
+import { formatUSD, productImageUrl, properCase } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,7 @@ export default async function ProductsPage() {
                       </span>
                     </Link>
                   </td>
-                  <td className="px-4 py-3">{categoryLabel(product.category)}</td>
+                  <td className="px-4 py-3">{product.categoryName}</td>
                   <td className="px-4 py-3 text-gray-600">{product.dimensions}</td>
                   <td className="px-4 py-3">{formatUSD(product.cost)}</td>
                   <td className="px-4 py-3">{formatUSD(product.msrp)}</td>
