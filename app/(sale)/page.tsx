@@ -35,7 +35,7 @@ export default async function HomePage() {
           const imageUrl = productImageUrl(category.imagePath);
           return (
             <Link key={category.id} href={`/productos?cat=${category.slug}`} className="group block">
-              <div className="aspect-[4/3] overflow-hidden bg-arquiluz-gray">
+              <div className="aspect-square w-full overflow-hidden bg-arquiluz-gray">
                 {imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
