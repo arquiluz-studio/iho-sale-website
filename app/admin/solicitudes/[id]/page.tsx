@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CreateQuoteButton } from "@/components/admin/CreateQuoteButton";
 import { InquiryActions } from "@/components/admin/InquiryActions";
 import { getInquiry } from "@/lib/admin";
 import { statusLabel } from "@/lib/format";
+import { getQuoteIdForInquiry } from "@/lib/quotes";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +12,7 @@ export default async function InquiryPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const inquiry = await getInquiry(id);
   if (!inquiry) notFound();
+  const quoteId = await getQuoteIdForInquiry(id);
 
   return (
     <main>
@@ -25,6 +29,15 @@ export default async function InquiryPage({ params }: { params: Promise<{ id: st
         </a>
       </p>
       {inquiry.note && <p className="mt-4 max-w-2xl text-gray-700">{inquiry.note}</p>}
+      <div className="mt-6">
+        {quoteId ? (
+          <Link href={`/admin/cotizaciones/${quoteId}`} className="text-sm font-medium text-arquiluz-accent">
+            Ver cotización
+          </Link>
+        ) : (
+          <CreateQuoteButton inquiryId={inquiry.id} />
+        )}
+      </div>
       <div className="mt-8">
         <InquiryActions inquiry={inquiry} />
       </div>

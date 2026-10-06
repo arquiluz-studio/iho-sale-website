@@ -1,0 +1,273 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { saveQuote, sendQuote } from "@/app/admin/cotizaciones/actions";
+import { formatQuoteNumber, formatUSD, quoteStatusLabel, quoteTotals } from "@/lib/format";
+import type { Quote, QuoteProductOption } from "@/lib/types";
+
+type Line = {
+  key: string;
+  id?: string;
+  productId: string | null;
+  brand: string;
+  model: string;
+  sku: string | null;
+  quantity: number;
+  msrp: number;
+  salePrice: number;
+};
+
+export function QuoteForm({ quote, products }: { quote: Quote | null; products: QuoteProductOption[] }) {
+  const router = useRouter();
+  const [name, setName] = useState(quote?.name ?? "");
+  const [company, setCompany] = useState(quote?.company ?? "");
+  const [email, setEmail] = useState(quote?.email ?? "");
+  const [phone, setPhone] = useState(quote?.phone ?? "");
+  const [note, setNote] = useState(quote?.note ?? "");
+  const [shipping, setShipping] = useState(quote ? String(quote.shipping) : "0");
+  const [lines, setLines] = useState<Line[]>(() =>
+    (quote?.items ?? []).map((item) => ({
+      key: item.id,
+      id: item.id,
+      productId: item.productId,
+      brand: item.brand,
+      model: item.model,
+      sku: item.sku,
+      quantity: item.quantity,
+      msrp: item.msrp,
+      salePrice: item.salePrice,
+    }))
+  );
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pending, setPending] = useState<"save" | "send" | null>(null);
+
+  const shippingAmount = Number(String(shipping).replace(/,/g, ""));
+  const totals = quoteTotals(lines, Number.isFinite(shippingAmount) && shippingAmount > 0 ? shippingAmount : 0);
+  const matches = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("es");
+    if (needle.length < 2) return [];
+    return products
+      .filter((product) => `${product.brand} ${product.model} ${product.sku ?? ""}`.toLocaleLowerCase("es").includes(needle))
+      .slice(0, 8);
+  }, [products, query]);
+
+  function addProduct(product: QuoteProductOption) {
+    setLines((current) => {
+      const existing = current.find((line) => line.productId === product.id);
+      if (existing) {
+        return current.map((line) => (line.productId === product.id ? { ...line, quantity: line.quantity + 1 } : line));
+      }
+      return [
+        ...current,
+        {
+          key: product.id,
+          productId: product.id,
+          brand: product.brand,
+          model: product.model,
+          sku: product.sku,
+          quantity: 1,
+          msrp: product.msrp,
+          salePrice: product.salePrice,
+        },
+      ];
+    });
+    setQuery("");
+  }
+
+  function formData() {
+    const data = new FormData();
+    if (quote) data.set("id", quote.id);
+    data.set("name", name);
+    data.set("company", company);
+    data.set("email", email);
+    data.set("phone", phone);
+    data.set("note", note);
+    data.set("shipping", shipping);
+    data.set(
+      "items",
+      JSON.stringify(lines.map((line) => ({ id: line.id, productId: line.productId, quantity: line.quantity })))
+    );
+    return data;
+  }
+
+  async function persist(mode: "save" | "send") {
+    setPending(mode);
+    setError(null);
+    setNotice(null);
+    const result = mode === "save" ? await saveQuote(formData()) : await sendQuote(formData());
+    setPending(null);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    if (!quote) {
+      router.push(`/admin/cotizaciones/${result.id}`);
+      return;
+    }
+    const message = "message" in result ? result.message : undefined;
+    setNotice(message ?? (mode === "send" ? "Enviada." : "Guardado."));
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-arquiluz-accent">
+            {quote ? quoteStatusLabel(quote.status) : "Nueva"}
+          </p>
+          <h1 className="mt-2 font-serif text-4xl">{quote ? formatQuoteNumber(quote.number) : "Nueva cotización"}</h1>
+        </div>
+        <a href="/admin/cotizaciones" className="text-sm font-medium text-arquiluz-accent">
+          Volver
+        </a>
+      </div>
+
+      <div className="grid gap-4 border border-black/10 bg-white p-5 md:grid-cols-2">
+        <Field label="Nombre" value={name} onChange={setName} />
+        <Field label="Empresa" value={company} onChange={setCompany} />
+        <Field label="Correo" value={email} onChange={setEmail} type="email" />
+        <Field label="Teléfono" value={phone} onChange={setPhone} />
+        <label className="block text-sm md:col-span-2">
+          <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Nota</span>
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} className="w-full border border-black/10 px-3 py-2" />
+        </label>
+      </div>
+
+      <div className="border border-black/10 bg-white p-5">
+        <label className="block text-sm" htmlFor="quote-product-search">
+          <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Agregar producto</span>
+          <input
+            id="quote-product-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Marca, modelo o SKU"
+            className="w-full border border-black/10 px-3 py-2"
+          />
+        </label>
+        {matches.length > 0 && (
+          <ul className="mt-2 divide-y divide-black/10 border border-black/10">
+            {matches.map((product) => (
+              <li key={product.id}>
+                <button type="button" onClick={() => addProduct(product)} className="flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-arquiluz-gray">
+                  <span>
+                    <span className="text-xs uppercase tracking-wider text-gray-500">{product.brand}</span>
+                    <span className="mt-0.5 block">{product.model}</span>
+                  </span>
+                  <span className="shrink-0 text-gray-500">{formatUSD(product.salePrice)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-6 divide-y divide-black/10">
+          {lines.map((line) => (
+            <div key={line.key} className="grid gap-3 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-gray-500">{line.brand}</p>
+                <p>{line.model}</p>
+                <p className="text-sm text-gray-500">
+                  {line.sku ? `${line.sku} · ` : ""}
+                  {formatUSD(line.salePrice)}
+                  {line.msrp > line.salePrice ? ` · lista ${formatUSD(line.msrp)}` : ""}
+                </p>
+              </div>
+              <label className="text-xs uppercase tracking-wider text-gray-500">
+                Cantidad
+                <input
+                  type="number"
+                  min={1}
+                  value={line.quantity}
+                  onChange={(event) => {
+                    const quantity = Math.floor(Number(event.target.value));
+                    if (!Number.isInteger(quantity) || quantity < 1) return;
+                    setLines((current) => current.map((entry) => (entry.key === line.key ? { ...entry, quantity } : entry)));
+                  }}
+                  className="ml-2 w-20 border border-black/10 px-2 py-1 text-sm text-arquiluz-black"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setLines((current) => current.filter((entry) => entry.key !== line.key))}
+                className="text-left text-sm text-gray-500 hover:text-arquiluz-accent"
+              >
+                Quitar
+              </button>
+            </div>
+          ))}
+          {lines.length === 0 && <p className="py-4 text-sm text-gray-500">Todavía no hay piezas.</p>}
+        </div>
+      </div>
+
+      <div className="grid gap-6 border border-black/10 bg-white p-5 md:grid-cols-[16rem_1fr] md:items-start">
+        <label className="block text-sm" htmlFor="quote-shipping">
+          <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Envío</span>
+          <input
+            id="quote-shipping"
+            inputMode="decimal"
+            value={shipping}
+            onChange={(event) => setShipping(event.target.value)}
+            className="w-full border border-black/10 px-3 py-2"
+          />
+        </label>
+        <dl className="space-y-2 text-sm">
+          <Row label="Subtotal" value={formatUSD(totals.subtotal)} />
+          <Row label="Envío" value={formatUSD(totals.shipping)} />
+          <Row label="ITBMS 7%" value={formatUSD(totals.itbms)} />
+          <div className="flex items-baseline justify-between gap-6 font-serif text-2xl">
+            <dt>Total</dt>
+            <dd>{formatUSD(totals.total)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      {error && <p className="text-sm text-arquiluz-accent">{error}</p>}
+      {notice && <p className="text-sm text-gray-600">{notice}</p>}
+      <div className="flex flex-wrap gap-3">
+        <button type="button" disabled={pending !== null} onClick={() => void persist("save")} className="bg-arquiluz-black px-5 py-2 text-sm text-white disabled:opacity-40">
+          {pending === "save" ? "Guardando…" : "Guardar"}
+        </button>
+        <button type="button" disabled={pending !== null} onClick={() => void persist("send")} className="bg-arquiluz-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-40">
+          {pending === "send" ? "Enviando…" : "Enviar al cliente"}
+        </button>
+        {quote && (
+          <a href={`/admin/cotizaciones/${quote.id}/pdf`} target="_blank" rel="noopener" className="border border-arquiluz-black px-5 py-2 text-sm">
+            Descargar PDF
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="block text-sm">
+      <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">{label}</span>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="w-full border border-black/10 px-3 py-2" />
+    </label>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-6">
+      <dt className="text-gray-500">{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}

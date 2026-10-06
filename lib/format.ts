@@ -36,6 +36,20 @@ export function properCase(value: string) {
     .replace(/(^|\s|-)(\p{L})/gu, (_, separator: string, letter: string) => separator + letter.toLocaleUpperCase("es"));
 }
 
+export function quoteTotals(items: { salePrice: number; quantity: number }[], shipping: number) {
+  const subtotal = items.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const taxed = withItbms(subtotal + shipping);
+  return { subtotal, shipping, itbms: taxed.itbms, total: taxed.total };
+}
+
+export function formatQuoteNumber(number: number) {
+  return `COT-${String(number).padStart(4, "0")}`;
+}
+
+export function quoteStatusLabel(status: "borrador" | "enviada") {
+  return status === "enviada" ? "Enviada" : "Borrador";
+}
+
 export function statusLabel(status: InquiryStatus) {
   switch (status) {
     case "nueva":

@@ -1,5 +1,6 @@
 export type ProductCategory = "mobiliario" | "accesorio";
 export type InquiryStatus = "nueva" | "en_contacto" | "surtida" | "cancelada";
+export type QuoteStatus = "borrador" | "enviada";
 
 export type ProductCategoryNode = {
   id: string;
@@ -57,6 +58,43 @@ export type Inquiry = {
   status: InquiryStatus;
   createdAt: string;
   items: InquiryItem[];
+};
+
+export type QuoteItem = {
+  id: string;
+  productId: string | null;
+  brand: string;
+  model: string;
+  sku: string | null;
+  quantity: number;
+  msrp: number;
+  salePrice: number;
+};
+
+export type Quote = {
+  id: string;
+  number: number;
+  inquiryId: string | null;
+  name: string;
+  company: string | null;
+  email: string;
+  phone: string;
+  note: string | null;
+  shipping: number;
+  status: QuoteStatus;
+  sentAt: string | null;
+  createdAt: string;
+  items: QuoteItem[];
+};
+
+export type QuoteProductOption = {
+  id: string;
+  brand: string;
+  model: string;
+  sku: string | null;
+  msrp: number;
+  salePrice: number;
+  stock: number;
 };
 
 export type SelectionDraft = {
