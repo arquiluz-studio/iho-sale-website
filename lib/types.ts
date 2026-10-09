@@ -33,9 +33,12 @@ export type CatalogProduct = {
   imagePath: string | null;
 };
 
-export type AdminProduct = CatalogProduct & {
+export type AdminProduct = Omit<CatalogProduct, "msrp" | "discountPercent" | "salePrice"> & {
   cost: number;
   categoryName: string;
+  msrp: number | null;
+  discountPercent: number | null;
+  salePrice: number | null;
 };
 
 export type InquiryItem = {

@@ -41,7 +41,13 @@ export function mapProduct(row: ProductRow): CatalogProduct {
 }
 
 export function mapAdminProduct(row: ProductRow) {
-  return { ...mapProduct(row), cost: toNumber(row.cost) };
+  return {
+    ...mapProduct(row),
+    cost: toNumber(row.cost),
+    msrp: row.msrp == null || row.msrp === "" ? null : toNumber(row.msrp),
+    discountPercent: row.discount_percent == null || row.discount_percent === "" ? null : toNumber(row.discount_percent),
+    salePrice: row.sale_price == null || row.sale_price === "" ? null : toNumber(row.sale_price),
+  };
 }
 
 type CategoryRow = {
@@ -100,7 +106,7 @@ export function catalogCategoryTree(categories: ProductCategoryNode[], counts: M
 
 export async function getInStockCategoryCounts() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("products").select("category_id").gt("stock", 0);
+  const { data, error } = await supabase.from("products").select("category_id").gt("stock", 0).not("sale_price", "is", null);
   if (error) throw new Error(error.message);
   const counts = new Map<string, number>();
   for (const row of data ?? []) {
@@ -124,6 +130,7 @@ export async function getCatalog(filters: {
     .from("products")
     .select(PUBLIC_COLUMNS)
     .gt("stock", 0)
+    .not("sale_price", "is", null)
     .order("brand")
     .order("model");
 
@@ -149,7 +156,7 @@ export async function getCatalog(filters: {
 
 export async function getCatalogBrands() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("products").select("brand").gt("stock", 0);
+  const { data, error } = await supabase.from("products").select("brand").gt("stock", 0).not("sale_price", "is", null);
   if (error) throw new Error(error.message);
   return [...new Set((data ?? []).map((row) => row.brand as string))].sort((a, b) =>
     a.localeCompare(b, "es")

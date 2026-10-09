@@ -25,8 +25,10 @@ export async function saveProduct(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const categoryId = String(formData.get("category_id") ?? "");
   const cost = parseMoney(formData.get("cost"));
-  const msrp = parseMoney(formData.get("msrp"));
-  const salePrice = parseMoney(formData.get("sale_price"));
+  const msrpText = String(formData.get("msrp") ?? "").trim();
+  const saleText = String(formData.get("sale_price") ?? "").trim();
+  const msrp = msrpText === "" ? null : parseMoney(msrpText);
+  let salePrice = saleText === "" ? null : parseMoney(saleText);
   const stock = Number(formData.get("stock"));
   const file = formData.get("image");
 
@@ -41,9 +43,10 @@ export async function saveProduct(formData: FormData) {
   if (!category?.parent_id) {
     return { ok: false as const, message: "Elige una subcategoría." };
   }
-  if (cost === null || msrp === null || salePrice === null) {
+  if (cost === null || (msrpText !== "" && msrp === null) || (saleText !== "" && salePrice === null)) {
     return { ok: false as const, message: "Revisa costo, MSRP y precio de venta." };
   }
+  if (msrp != null && salePrice == null) salePrice = Math.round(msrp * 50) / 100;
   if (!Number.isInteger(stock) || stock < 0) {
     return { ok: false as const, message: "El stock tiene que ser un número entero." };
   }
@@ -58,7 +61,7 @@ export async function saveProduct(formData: FormData) {
     cost,
     msrp,
     sale_price: salePrice,
-    discount_percent: discountFromPrices(msrp, salePrice),
+    discount_percent: msrp != null && salePrice != null ? discountFromPrices(msrp, salePrice) : null,
     stock,
   };
 

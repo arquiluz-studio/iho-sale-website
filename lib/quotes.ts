@@ -106,6 +106,7 @@ export async function getQuoteProducts() {
   const { data, error } = await supabase
     .from("products")
     .select("id, brand, model, sku, msrp, sale_price, stock, image_path")
+    .not("sale_price", "is", null)
     .order("brand")
     .order("model");
   if (error) throw new Error(error.message);

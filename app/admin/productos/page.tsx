@@ -53,10 +53,12 @@ export default async function ProductsPage() {
                   <td className="px-4 py-3">{product.categoryName}</td>
                   <td className="px-4 py-3 text-gray-600">{product.dimensions}</td>
                   <td className="px-4 py-3">{formatUSD(product.cost)}</td>
-                  <td className="px-4 py-3">{formatUSD(product.msrp)}</td>
+                  <td className="px-4 py-3">{product.msrp == null ? "" : formatUSD(product.msrp)}</td>
                   <td className="px-4 py-3">
-                    {formatUSD(product.salePrice)}
-                    <span className="ml-2 text-xs text-gray-500">-{product.discountPercent}%</span>
+                    {product.salePrice == null ? "" : formatUSD(product.salePrice)}
+                    {product.discountPercent != null && product.discountPercent > 0 && (
+                      <span className="ml-2 text-xs text-gray-500">-{product.discountPercent}%</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">{product.stock}</td>
                 </tr>

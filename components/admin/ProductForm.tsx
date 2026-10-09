@@ -38,9 +38,9 @@ export function ProductForm({ product, categories }: { product?: AdminProduct; c
     description: product?.description ?? "",
     categoryId: product?.categoryId ?? "",
     cost: product ? money(product.cost) : "",
-    msrp: product ? money(product.msrp) : "",
-    discount: product ? money(product.discountPercent) : "",
-    salePrice: product ? money(product.salePrice) : "",
+    msrp: product?.msrp == null ? "" : money(product.msrp),
+    discount: product?.discountPercent == null ? "" : money(product.discountPercent),
+    salePrice: product?.salePrice == null ? "" : money(product.salePrice),
     stock: product ? String(product.stock) : "1",
   });
   const router = useRouter();
@@ -167,8 +167,13 @@ export function ProductForm({ product, categories }: { product?: AdminProduct; c
             name="msrp"
             value={draft.msrp}
             inputMode="decimal"
-            required
-            onChange={(msrp) => updateDiscount(draft.discount, msrp)}
+            onChange={(msrp) => {
+              if (draft.salePrice === "" && draft.discount === "" && msrp !== "" && Number(msrp) >= 0) {
+                updateDiscount("50", msrp);
+                return;
+              }
+              updateDiscount(draft.discount, msrp);
+            }}
           />
           <TextField
             label="Descuento %"
@@ -182,7 +187,6 @@ export function ProductForm({ product, categories }: { product?: AdminProduct; c
             name="sale_price"
             value={draft.salePrice}
             inputMode="decimal"
-            required
             onChange={(salePrice) => updateSale(salePrice)}
           />
         </div>

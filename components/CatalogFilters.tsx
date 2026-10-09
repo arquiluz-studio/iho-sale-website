@@ -69,15 +69,18 @@ export function CatalogFilters({
 
   return (
     <>
-      <button
-        type="button"
-        className="flex w-full items-center justify-between border border-black/10 px-4 py-3 text-left text-sm font-medium md:hidden"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      >
-        <span className="min-w-0 truncate">{active.length > 0 ? `Filtros · ${active.join(" · ")}` : "Filtros"}</span>
-        <span className="ml-3 shrink-0 text-arquiluz-accent">Abrir</span>
-      </button>
+      <div className="space-y-3 md:hidden">
+        <SearchForm idPrefix="page" q={q} cat={cat} brand={brand} min={min} max={max} />
+        <button
+          type="button"
+          className="flex w-full items-center justify-between border border-black/10 px-4 py-3 text-left text-sm font-medium"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+        >
+          <span className="min-w-0 truncate">{active.length > 0 ? `Filtros · ${active.join(" · ")}` : "Filtros"}</span>
+          <span className="ml-3 shrink-0 text-arquiluz-accent">Abrir</span>
+        </button>
+      </div>
 
       <aside className="hidden space-y-8 md:block">
         <FilterFields idPrefix="desktop" q={q} cat={cat} brand={brand} min={min} max={max} brands={brands} groups={groups} />
@@ -139,27 +142,7 @@ function FilterFields({
 
   return (
     <div className="space-y-8">
-      <form method="get" action="/productos" className="space-y-2">
-        {cat && <input type="hidden" name="cat" value={cat} />}
-        {brand && <input type="hidden" name="brand" value={brand} />}
-        {min && <input type="hidden" name="min" value={min} />}
-        {max && <input type="hidden" name="max" value={max} />}
-        <label className="block text-xs uppercase tracking-wider text-gray-500" htmlFor={`${idPrefix}-catalog-search`}>
-          Buscar
-        </label>
-        <div className="flex gap-2">
-          <input
-            id={`${idPrefix}-catalog-search`}
-            name="q"
-            defaultValue={q}
-            placeholder="Marca o modelo"
-            className="w-full border border-black/10 bg-white px-3 py-2 text-sm"
-          />
-          <button type="submit" className="bg-arquiluz-black px-3 py-2 text-sm text-white">
-            Ir
-          </button>
-        </div>
-      </form>
+      <SearchForm idPrefix={idPrefix} q={q} cat={cat} brand={brand} min={min} max={max} />
 
       <PriceFilter idPrefix={idPrefix} q={q} cat={cat} brand={brand} min={min} max={max} />
 
@@ -218,6 +201,46 @@ function FilterFields({
       </FilterGroup>
 
     </div>
+  );
+}
+
+function SearchForm({
+  idPrefix,
+  q,
+  cat,
+  brand,
+  min,
+  max,
+}: {
+  idPrefix: string;
+  q: string;
+  cat: string;
+  brand: string;
+  min: string;
+  max: string;
+}) {
+  return (
+    <form method="get" action="/productos" className="space-y-2">
+      {cat && <input type="hidden" name="cat" value={cat} />}
+      {brand && <input type="hidden" name="brand" value={brand} />}
+      {min && <input type="hidden" name="min" value={min} />}
+      {max && <input type="hidden" name="max" value={max} />}
+      <label className="block text-xs uppercase tracking-wider text-gray-500" htmlFor={`${idPrefix}-catalog-search`}>
+        Buscar
+      </label>
+      <div className="flex gap-2">
+        <input
+          id={`${idPrefix}-catalog-search`}
+          name="q"
+          defaultValue={q}
+          placeholder="Marca o modelo"
+          className="w-full border border-black/10 bg-white px-3 py-2 text-sm"
+        />
+        <button type="submit" className="bg-arquiluz-black px-3 py-2 text-sm text-white">
+          Ir
+        </button>
+      </div>
+    </form>
   );
 }
 
