@@ -234,7 +234,7 @@ function SearchForm({
           name="q"
           defaultValue={q}
           placeholder="Marca o modelo"
-          className="w-full border border-black/10 bg-white px-3 py-2 text-sm"
+          className="w-full border border-black/10 bg-white px-3 py-2 text-base md:text-sm"
         />
         <button type="submit" className="bg-arquiluz-black px-3 py-2 text-sm text-white">
           Ir
@@ -273,7 +273,7 @@ function PriceFilter({
           inputMode="decimal"
           defaultValue={min}
           placeholder="0"
-          className="w-full border border-black/10 bg-white px-3 py-2 text-sm"
+          className="w-full border border-black/10 bg-white px-3 py-2 text-base md:text-sm"
         />
       </label>
       <label className="block text-sm" htmlFor={`${idPrefix}-price-max`}>
@@ -284,7 +284,7 @@ function PriceFilter({
           inputMode="decimal"
           defaultValue={max}
           placeholder="Sin tope"
-          className="w-full border border-black/10 bg-white px-3 py-2 text-sm"
+          className="w-full border border-black/10 bg-white px-3 py-2 text-base md:text-sm"
         />
       </label>
       <button type="submit" className="w-full border border-arquiluz-black px-3 py-2 text-sm">
